@@ -28,17 +28,17 @@
           </nav>
           <div class="nav-buttons" data-auth-region>
             <div class="auth-user" data-user-actions hidden>
-              <span class="user-pill">
-                <span class="user-indicator"></span>
-                <span data-user-email></span>
-              </span>
               <button
                 type="button"
-                class="btn btn-outline btn-small"
-                data-logout-button
-                id="btnLogout"
+                class="user-pill"
+                data-profile-trigger
+                aria-haspopup="dialog"
               >
-                Logout
+                <span class="user-avatar" data-user-avatar>👤</span>
+                <span class="user-pill__meta">
+                  <span data-user-display></span>
+                  <small data-user-email></small>
+                </span>
               </button>
             </div>
             <div class="auth-guest" data-guest-actions>
@@ -61,6 +61,65 @@
       aria-live="polite"
       aria-atomic="true"
     ></div>
+
+    <div class="profile-panel-backdrop" data-profile-backdrop hidden></div>
+    <aside class="profile-panel" data-profile-panel hidden>
+      <div class="profile-panel__header">
+        <div>
+          <p class="profile-panel__subheading">Pengaturan Akun</p>
+          <h3>Profil Pengguna</h3>
+        </div>
+        <button
+          type="button"
+          class="profile-panel__close"
+          data-profile-close
+          aria-label="Tutup panel profil"
+        >
+          ×
+        </button>
+      </div>
+      <form class="profile-form" data-profile-form>
+        <div class="form-group">
+          <label for="profile-fullname">Nama Lengkap</label>
+          <input
+            type="text"
+            id="profile-fullname"
+            name="full_name"
+            placeholder="Nama Lengkap"
+            data-profile-name
+            required
+          />
+          <p class="form-hint">Nama ini akan tampil di dashboard.</p>
+        </div>
+
+        <div class="form-group">
+          <label>Pilih Avatar</label>
+          <div class="avatar-options" role="radiogroup">
+            <label class="avatar-card">
+              <input type="radio" name="avatar" value="male" checked />
+              <span class="avatar-emoji" aria-hidden="true">👨</span>
+              <span>Laki-laki</span>
+            </label>
+            <label class="avatar-card">
+              <input type="radio" name="avatar" value="female" />
+              <span class="avatar-emoji" aria-hidden="true">👩</span>
+              <span>Perempuan</span>
+            </label>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full">
+          Simpan Perubahan
+        </button>
+        <button
+          type="button"
+          class="btn btn-outline btn-full profile-logout"
+          data-logout-button
+        >
+          Logout
+        </button>
+      </form>
+    </aside>
 
     <!-- Scripts -->
     <script type="module" src="/src/main.js"></script>
