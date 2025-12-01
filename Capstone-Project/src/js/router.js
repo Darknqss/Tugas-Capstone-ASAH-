@@ -17,11 +17,11 @@ export class Router {
         const hash = window.location.hash.slice(1);
         if (hash) {
             const routePath = `/${hash}`;
-            const component = this.routes[routePath];
-            if (component) {
-                this.render(component);
-                return;
-            }
+        const component = this.routes[routePath];
+        if (component) {
+            this.render(component);
+            return;
+        }
         }
         
         // Fall back to pathname-based routing
@@ -40,5 +40,7 @@ export class Router {
         setTimeout(() => {
             app.classList.remove('fade-in');
         }, 500);
+
+        document.dispatchEvent(new CustomEvent('capstone:route-rendered'));
     }
 }
