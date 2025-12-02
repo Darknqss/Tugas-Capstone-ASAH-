@@ -3,9 +3,9 @@ export function LoginPage() {
     <section class="auth-page">
       <div class="auth-card">
         <div class="auth-card__header">
-          <p class="auth-breadcrumb">Capstone Team &rsaquo; Autentikasi</p>
+          <p class="auth-breadcrumb">Capstone Team &rsaquo; Masuk</p>
           <h2 class="auth-title">Masuk</h2>
-          <p class="auth-subtitle">Gunakan akun yang sudah terdaftar untuk mengakses dashboard.</p>
+          <p class="auth-subtitle">Masukkan kredensial Anda untuk melanjutkan.</p>
         </div>
 
         <form class="auth-form" data-auth-form="login" novalidate>
@@ -14,25 +14,22 @@ export function LoginPage() {
           <div class="form-group">
             <label for="login-email">Email</label>
             <input type="email" id="login-email" name="email" placeholder="email@contoh.com" autocomplete="email" required />
-            <p class="form-hint">Gunakan email aktif yang telah terdaftar.</p>
             <p class="form-error" data-error="email"></p>
           </div>
 
           <div class="form-group">
             <label for="login-password">Password</label>
-            <input type="password" id="login-password" name="password" placeholder="Minimal 8 karakter" autocomplete="current-password" required />
+            <input type="password" id="login-password" name="password" placeholder="Password" autocomplete="current-password" required />
             <p class="form-error" data-error="password"></p>
           </div>
 
-          <button type="submit" class="btn btn-primary btn-full" data-submit-text="Masuk">Masuk</button>
+          <button type="submit" class="auth-form__button">Masuk</button>
         </form>
 
-        <p class="auth-switch">
-          Belum punya akun?
-          <a href="#register" data-link>Daftar sekarang</a>
+        <p class="auth-footer">
+          Belum punya akun? <a href="/#/register">Daftar di sini</a>
         </p>
       </div>
     </section>
   `;
 }
-
