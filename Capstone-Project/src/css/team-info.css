@@ -1,0 +1,73 @@
+/* Team Registration Inline Form (Team Information page) */
+.registration-form-card {
+  margin-top: 24px;
+}
+
+.team-registration-form {
+  margin-top: 16px;
+  display: grid;
+  gap: 18px;
+}
+
+.team-registration-form .form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.team-registration-form label {
+  font-weight: 600;
+}
+
+.team-registration-form input,
+.team-registration-form select,
+.team-registration-form textarea {
+  border: 2px solid #dfe3e6;
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: #f8f8f8;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.team-registration-form input:focus,
+.team-registration-form select:focus,
+.team-registration-form textarea:focus {
+  outline: none;
+  border-color: var(--secondary-color);
+  box-shadow: 0 0 0 3px rgba(0, 74, 122, 0.08);
+  background: #fff;
+}
+
+.team-registration-form .form-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.registration-summary {
+  margin-top: 20px;
+  padding: 18px;
+  border-radius: 12px;
+  background-color: #eef8f3;
+  border: 1px solid #cce7da;
+}
+
+.registration-summary h3 {
+  margin-bottom: 8px;
+  color: var(--primary-color);
+}
+
+.registration-summary ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.registration-summary li span {
+  font-weight: 600;
+  color: #495057;
+}
+
+
