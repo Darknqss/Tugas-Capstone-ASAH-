@@ -61,8 +61,11 @@ class App {
     document.addEventListener("click", (e) => {
       if (e.target.matches("[data-link]")) {
         e.preventDefault();
-        const href = e.target.getAttribute("href");
-        window.location.hash = href;
+        const href = e.target.getAttribute("href") || "";
+        // Pastikan yang diset ke hash TIDAK lagi diawali dengan "#"
+        // agar tidak menjadi "#%23login" dan rute bisa dikenali.
+        const cleanHash = href.replace(/^#/, "");
+        window.location.hash = cleanHash;
         this.router.loadRoute();
         this.updateActiveNavLink();
       }

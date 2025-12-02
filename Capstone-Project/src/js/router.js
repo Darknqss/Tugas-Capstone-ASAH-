@@ -8,8 +8,10 @@ export class Router {
     }
 
     navigate(path) {
-        // Update hash for SPA navigation
-        window.location.hash = path;
+        // Normalisasi path: buang "#" dan "/" di depan sebelum set hash
+        const clean = String(path || "").replace(/^#/, "").replace(/^\//, "");
+        window.location.hash = clean;
+        this.loadRoute();
     }
 
     loadRoute() {
