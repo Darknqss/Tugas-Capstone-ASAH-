@@ -8,8 +8,10 @@ export class Router {
     }
 
     navigate(path) {
-        // Update hash for SPA navigation
-        window.location.hash = path;
+        // Normalisasi path: buang "#" dan "/" di depan sebelum set hash
+        const clean = String(path || "").replace(/^#/, "").replace(/^\//, "");
+        window.location.hash = clean;
+        this.loadRoute();
     }
 
     loadRoute() {
@@ -17,11 +19,11 @@ export class Router {
         const hash = window.location.hash.slice(1);
         if (hash) {
             const routePath = `/${hash}`;
-            const component = this.routes[routePath];
-            if (component) {
-                this.render(component);
-                return;
-            }
+        const component = this.routes[routePath];
+        if (component) {
+            this.render(component);
+            return;
+        }
         }
         
         // Fall back to pathname-based routing
@@ -40,5 +42,7 @@ export class Router {
         setTimeout(() => {
             app.classList.remove('fade-in');
         }, 500);
+
+        document.dispatchEvent(new CustomEvent('capstone:route-rendered'));
     }
 }

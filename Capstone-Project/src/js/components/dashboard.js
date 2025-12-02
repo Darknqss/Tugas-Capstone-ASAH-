@@ -1,10 +1,21 @@
+import { readSession } from "../services/authService.js";
+
 export function DashboardPage() {
+    const session = readSession();
+    const displayName = session?.user?.full_name || session?.user?.email || 'Pengunjung';
+    const heroTitle = session?.user
+        ? `Selamat Datang, ${displayName}`
+        : 'Selamat Datang, Silahkan Login terlebih dahulu';
+    const heroSubtitle = session?.user
+        ? 'Semoga aktivitas belajarmu menyenangkan.'
+        : 'Silakan login untuk mengakses seluruh fitur dashboard.';
+
     return `
         <!-- Hero Section -->
         <section class="hero-section">
             <div class="container">
-                <h1 class="hero-title">Selamat Datang, Silahkan Login terlebih dahulu</h1>
-                <p class="hero-subtitle">Semoga aktivitas belajarmu menyenangkan.</p>
+                <h1 class="hero-title">${heroTitle}</h1>
+                <p class="hero-subtitle">${heroSubtitle}</p>
             </div>
         </section>
 
@@ -17,7 +28,7 @@ export function DashboardPage() {
                         <h2 class="card-title">Team Information</h2>
                         <div class="registration-row">
                             <span class="registration-label">Registration</span>
-                            <button class="btn-registration">Registration Here</button>
+                            <button class="btn-registration" data-registration-toggle>Registration Here</button>
                         </div>
                     </div>
 
