@@ -62,11 +62,9 @@ class App {
       if (e.target.matches("[data-link]")) {
         e.preventDefault();
         const href = e.target.getAttribute("href") || "";
-        // Pastikan yang diset ke hash TIDAK lagi diawali dengan "#"
-        // agar tidak menjadi "#%23login" dan rute bisa dikenali.
         const cleanHash = href.replace(/^#/, "");
-        window.location.hash = cleanHash;
-        this.router.loadRoute();
+        // Gunakan router.navigate agar normalisasi path konsisten
+        this.router.navigate(cleanHash);
         this.updateActiveNavLink();
       }
     });
@@ -122,7 +120,7 @@ class App {
           this.toggleTeamRegistrationPanel(true);
         } else {
           this.pendingRegistrationOpen = true;
-          window.location.hash = "#team-information";
+          this.router.navigate("team-information");
         }
       }
     });
@@ -207,8 +205,7 @@ class App {
       this.populateProfileForm();
       this.showToast("Login berhasil 👋");
       setTimeout(() => {
-        window.location.hash = "#dashboard";
-        this.router.loadRoute();
+        this.router.navigate("dashboard");
       }, 400);
     } catch (error) {
       this.applyApiErrors(form, error);
@@ -237,8 +234,7 @@ class App {
       form.reset();
       this.showToast("Akun berhasil dibuat ✅");
       setTimeout(() => {
-        window.location.hash = "#login";
-        this.router.loadRoute();
+        this.router.navigate("login");
       }, 500);
     } catch (error) {
       this.applyApiErrors(form, error);
@@ -257,8 +253,7 @@ class App {
       this.updateAuthWidgets();
        this.toggleProfilePanel(false);
       this.showToast("Anda sudah keluar.");
-      window.location.hash = "#login";
-      this.router.loadRoute();
+      this.router.navigate("login");
     }
   }
 
