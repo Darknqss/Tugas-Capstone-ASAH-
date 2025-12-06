@@ -6,6 +6,12 @@ import { WorksheetPage } from "./components/worksheet.js";
 import { FeedbackPage } from "./components/feedback.js";
 import { LoginPage } from "./components/login.js";
 import { RegisterPage } from "./components/register.js";
+import { AdminDashboardPage } from "./components/adminDashboard.js";
+import { AdminTeamInfoPage } from "./components/adminTeamInfo.js";
+import { AdminDocumentsPage } from "./components/adminDocuments.js";
+import { AdminWorksheetPage } from "./components/adminWorksheet.js";
+import { AdminFeedbackPage } from "./components/adminFeedback.js";
+import { TimelinePage } from "./components/timeline.js";
 import {
   clearSession,
   loginRequest,
@@ -14,6 +20,14 @@ import {
   readSession,
   registerRequest,
 } from "./services/authService.js";
+import {
+  createGroup,
+  updateGroup,
+  validateGroupRegistration,
+  updateProjectStatus,
+  setGroupRules,
+  listAllGroups,
+} from "./services/adminService.js";
 
 const TEAM_REGISTRATION_KEY = "capstone-team-registration";
 
@@ -40,6 +54,10 @@ class App {
         this.toggleTeamRegistrationPanel(true);
         this.pendingRegistrationOpen = false;
       }
+      // Handle admin team info detail panel
+      this.handleAdminTeamInfoDetail();
+      // Update navigation visibility based on current route
+      this.updateNavVisibility();
     });
     this.router.loadRoute();
     this.updateActiveNavLink();
@@ -47,6 +65,7 @@ class App {
   }
 
   registerRoutes() {
+    // Student routes
     this.router.addRoute("/", DashboardPage);
     this.router.addRoute("/dashboard", DashboardPage);
     this.router.addRoute("/team-information", TeamInfoPage);
@@ -55,6 +74,16 @@ class App {
     this.router.addRoute("/360-feedback", FeedbackPage);
     this.router.addRoute("/login", LoginPage);
     this.router.addRoute("/register", RegisterPage);
+    
+    // Admin routes
+    this.router.addRoute("/admin-dashboard", AdminDashboardPage);
+    this.router.addRoute("/admin-team-information", AdminTeamInfoPage);
+    this.router.addRoute("/admin-dokumen-timeline", AdminDocumentsPage);
+    this.router.addRoute("/admin-individual-worksheet", AdminWorksheetPage);
+    this.router.addRoute("/admin-360-feedback", AdminFeedbackPage);
+    
+    // Timeline route
+    this.router.addRoute("/timeline", TimelinePage);
   }
 
   handleNavigation() {
@@ -102,6 +131,22 @@ class App {
         event.preventDefault();
         this.handleTeamRegistrationSubmit(form);
       }
+
+      // Admin form handlers
+      if (form.matches('[data-form="create-group"]')) {
+        event.preventDefault();
+        this.handleCreateGroup(form);
+      }
+
+      if (form.matches('[data-form="set-rules"]')) {
+        event.preventDefault();
+        this.handleSetRules(form);
+      }
+
+      if (form.matches('[data-form="validate-group"]')) {
+        event.preventDefault();
+        this.handleValidateGroup(form);
+      }
     });
 
     document.addEventListener("click", async (event) => {
@@ -122,6 +167,75 @@ class App {
           this.pendingRegistrationOpen = true;
           this.router.navigate("team-information");
         }
+      }
+
+      // Admin action handlers
+      const adminAction = event.target.closest("[data-admin-action]");
+      if (adminAction) {
+        event.preventDefault();
+        const action = adminAction.dataset.adminAction;
+        this.handleAdminAction(action);
+      }
+
+      const viewGroup = event.target.closest("[data-view-group]");
+      if (viewGroup) {
+        event.preventDefault();
+        const groupId = viewGroup.dataset.viewGroup;
+        this.viewGroupDetail(groupId);
+      }
+
+      const validateGroupBtn = event.target.closest("[data-validate-group]");
+      if (validateGroupBtn) {
+        event.preventDefault();
+        const groupId = validateGroupBtn.dataset.validateGroup;
+        const status = validateGroupBtn.dataset.validateStatus;
+        this.openValidateModal(groupId, status);
+      }
+
+      const startProject = event.target.closest("[data-start-project]");
+      if (startProject) {
+        event.preventDefault();
+        const groupId = startProject.dataset.startProject;
+        this.handleStartProject(groupId);
+      }
+
+      const closeDetail = event.target.closest("[data-close-detail]");
+      if (closeDetail) {
+        event.preventDefault();
+        this.closeGroupDetail();
+      }
+
+      const closeModal = event.target.closest("[data-close-modal]");
+      if (closeModal) {
+        event.preventDefault();
+        this.closeModal();
+      }
+
+      const modalBackdrop = event.target.closest("[data-modal-backdrop]");
+      if (modalBackdrop) {
+        event.preventDefault();
+        this.closeModal();
+      }
+    });
+
+    // Handle validate status change
+    document.addEventListener("change", (event) => {
+      if (event.target.matches("[data-validate-status]")) {
+        const reasonGroup = document.querySelector(
+          "[data-rejection-reason-group]"
+        );
+        if (reasonGroup) {
+          reasonGroup.hidden = event.target.value !== "rejected";
+        }
+      }
+
+      // Handle search and filter
+      if (event.target.matches("[data-search-groups]")) {
+        this.handleSearchGroups(event.target.value);
+      }
+
+      if (event.target.matches("[data-filter-status]")) {
+        this.handleFilterGroups(event.target.value);
       }
     });
   }
@@ -178,7 +292,8 @@ class App {
     const hash = window.location.hash.slice(1) || "dashboard";
     document.querySelectorAll(".nav-link").forEach((link) => {
       const href = link.getAttribute("href").replace("#", "");
-      if (href === hash) {
+      // Handle both exact match and admin routes
+      if (href === hash || (hash.startsWith("admin-") && href === hash)) {
         link.classList.add("active");
       } else {
         link.classList.remove("active");
@@ -205,7 +320,9 @@ class App {
       this.populateProfileForm();
       this.showToast("Login berhasil 👋");
       setTimeout(() => {
-        this.router.navigate("dashboard");
+        const session = this.ensureSessionDefaults(readSession());
+        const isAdmin = session?.user?.role === "admin";
+        this.router.navigate(isAdmin ? "admin-dashboard" : "dashboard");
       }, 400);
     } catch (error) {
       this.applyApiErrors(form, error);
@@ -318,6 +435,8 @@ class App {
     const displayTarget = document.querySelector("[data-user-display]");
     const avatarTarget = document.querySelector("[data-user-avatar]");
     const profileTrigger = document.querySelector("[data-profile-trigger]");
+    const studentNav = document.querySelector("[data-student-nav]");
+    const adminNav = document.querySelector("[data-admin-nav]");
 
     if (session?.user) {
       guestActions?.setAttribute("hidden", "hidden");
@@ -329,6 +448,16 @@ class App {
       if (avatarTarget)
         avatarTarget.textContent = this.getAvatarSymbol(session.user.avatar);
       profileTrigger?.removeAttribute("disabled");
+
+      // Show appropriate navigation based on role
+      const isAdmin = session.user.role === "admin";
+      if (isAdmin) {
+        studentNav?.setAttribute("hidden", "hidden");
+        adminNav?.removeAttribute("hidden");
+      } else {
+        adminNav?.setAttribute("hidden", "hidden");
+        studentNav?.removeAttribute("hidden");
+      }
     } else {
       userActions?.setAttribute("hidden", "hidden");
       guestActions?.removeAttribute("hidden");
@@ -336,6 +465,9 @@ class App {
       if (displayTarget) displayTarget.textContent = "";
       if (avatarTarget) avatarTarget.textContent = "👤";
       profileTrigger?.setAttribute("disabled", "disabled");
+      // Hide both navigation menus when logged out
+      if (studentNav) studentNav.setAttribute("hidden", "hidden");
+      if (adminNav) adminNav.setAttribute("hidden", "hidden");
     }
   }
 
@@ -538,6 +670,234 @@ class App {
     if (type === "female") return "👩";
     if (type === "male") return "👨";
     return "👤";
+  }
+
+  // Admin handlers
+  async handleAdminAction(action) {
+    switch (action) {
+      case "create-group":
+        this.openModal("create-group");
+        break;
+      case "set-rules":
+        this.openModal("set-rules");
+        break;
+      case "export-data":
+        this.handleExportData();
+        break;
+      case "randomize":
+        this.handleRandomize();
+        break;
+      default:
+        console.warn("Unknown admin action:", action);
+    }
+  }
+
+  openModal(modalName) {
+    const modal = document.querySelector(`[data-modal="${modalName}"]`);
+    const backdrop = document.querySelector("[data-modal-backdrop]");
+    if (modal && backdrop) {
+      modal.hidden = false;
+      backdrop.hidden = false;
+    }
+  }
+
+  closeModal() {
+    const modals = document.querySelectorAll("[data-modal]");
+    const backdrop = document.querySelector("[data-modal-backdrop]");
+    modals.forEach((modal) => {
+      modal.hidden = true;
+    });
+    if (backdrop) backdrop.hidden = true;
+  }
+
+  async handleCreateGroup(form) {
+    this.resetFormState(form);
+    const formData = new FormData(form);
+    const payload = {
+      group_name: formData.get("group_name")?.trim(),
+      batch_id: formData.get("batch_id")?.trim(),
+    };
+
+    try {
+      this.toggleSubmitLoading(form, true);
+      await createGroup(payload);
+      this.showToast("Tim berhasil dibuat ✅");
+      this.closeModal();
+      form.reset();
+      this.router.loadRoute();
+    } catch (error) {
+      this.applyApiErrors(form, error);
+    } finally {
+      this.toggleSubmitLoading(form, false);
+    }
+  }
+
+  async handleSetRules(form) {
+    this.resetFormState(form);
+    const formData = new FormData(form);
+    const payload = {
+      batch_id: formData.get("batch_id")?.trim(),
+      rules: [
+        {
+          user_attribute: "learning_path",
+          attribute_value: formData.get("learning_path")?.trim(),
+          operator: formData.get("operator")?.trim(),
+          value: formData.get("value")?.trim(),
+        },
+      ],
+    };
+
+    try {
+      this.toggleSubmitLoading(form, true);
+      await setGroupRules(payload);
+      this.showToast("Aturan komposisi tim berhasil disimpan ✅");
+      this.closeModal();
+      form.reset();
+    } catch (error) {
+      this.applyApiErrors(form, error);
+    } finally {
+      this.toggleSubmitLoading(form, false);
+    }
+  }
+
+  openValidateModal(groupId, status) {
+    const modal = document.querySelector('[data-modal="validate-group"]');
+    const backdrop = document.querySelector("[data-modal-backdrop]");
+    const groupIdInput = modal?.querySelector("[data-group-id-input]");
+    const statusSelect = modal?.querySelector("[data-validate-status]");
+    const reasonGroup = modal?.querySelector("[data-rejection-reason-group]");
+
+    if (modal && backdrop && groupIdInput && statusSelect) {
+      groupIdInput.value = groupId;
+      statusSelect.value = status;
+      if (reasonGroup) {
+        reasonGroup.hidden = status !== "rejected";
+      }
+      modal.hidden = false;
+      backdrop.hidden = false;
+    }
+  }
+
+  async handleValidateGroup(form) {
+    this.resetFormState(form);
+    const formData = new FormData(form);
+    const groupId = formData.get("group_id");
+    const status = formData.get("status");
+    const payload = {
+      status,
+    };
+
+    if (status === "rejected") {
+      const reason = formData.get("rejection_reason")?.trim();
+      if (!reason) {
+        this.showFormFeedback(form, "Alasan penolakan wajib diisi", true);
+        return;
+      }
+      payload.rejection_reason = reason;
+    }
+
+    try {
+      this.toggleSubmitLoading(form, true);
+      await validateGroupRegistration(groupId, payload);
+      this.showToast(
+        `Tim ${status === "accepted" ? "diterima" : "ditolak"} ✅`
+      );
+      this.closeModal();
+      form.reset();
+      this.router.loadRoute();
+    } catch (error) {
+      this.applyApiErrors(form, error);
+    } finally {
+      this.toggleSubmitLoading(form, false);
+    }
+  }
+
+  async handleStartProject(groupId) {
+    try {
+      await updateProjectStatus(groupId);
+      this.showToast("Proyek dimulai ✅");
+      this.router.loadRoute();
+    } catch (error) {
+      this.showToast("Gagal memulai proyek. Coba lagi.");
+      console.error("Error starting project:", error);
+    }
+  }
+
+  async viewGroupDetail(groupId) {
+    this.router.navigate(`admin-team-information?groupId=${groupId}`);
+  }
+
+  closeGroupDetail() {
+    const panel = document.querySelector("[data-group-detail-panel]");
+    if (panel) {
+      panel.hidden = true;
+    }
+    this.router.navigate("admin-team-information");
+  }
+
+  handleExportData() {
+    this.showToast("Fitur ekspor data akan segera tersedia");
+  }
+
+  handleRandomize() {
+    this.showToast("Fitur randomize peserta akan segera tersedia");
+  }
+
+  handleSearchGroups(searchTerm) {
+    const rows = document.querySelectorAll("[data-groups-list] tr");
+    const term = searchTerm.toLowerCase().trim();
+    rows.forEach((row) => {
+      const text = row.textContent.toLowerCase();
+      row.style.display = text.includes(term) ? "" : "none";
+    });
+  }
+
+  handleFilterGroups(status) {
+    const rows = document.querySelectorAll("[data-groups-list] tr[data-group-id]");
+    rows.forEach((row) => {
+      if (!status) {
+        row.style.display = "";
+        return;
+      }
+      const statusBadge = row.querySelector(`.status-badge--${status}`);
+      row.style.display = statusBadge ? "" : "none";
+    });
+  }
+
+  async handleAdminTeamInfoDetail() {
+    const urlParams = new URLSearchParams(window.location.hash.split("?")[1] || "");
+    const groupId = urlParams.get("groupId");
+    if (groupId) {
+      // Detail panel should already be rendered by the component
+      const panel = document.querySelector("[data-group-detail-panel]");
+      if (panel) {
+        panel.hidden = false;
+        panel.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }
+  }
+
+  updateNavVisibility() {
+    const session = this.ensureSessionDefaults(readSession());
+    const studentNav = document.querySelector("[data-student-nav]");
+    const adminNav = document.querySelector("[data-admin-nav]");
+
+    if (session?.user) {
+      const isAdmin = session.user.role === "admin";
+
+      // Show/hide navigation based on role
+      if (isAdmin) {
+        if (studentNav) studentNav.setAttribute("hidden", "hidden");
+        if (adminNav) adminNav.removeAttribute("hidden");
+      } else {
+        if (adminNav) adminNav.setAttribute("hidden", "hidden");
+        if (studentNav) studentNav.removeAttribute("hidden");
+      }
+    } else {
+      // Hide both when logged out
+      if (studentNav) studentNav.setAttribute("hidden", "hidden");
+      if (adminNav) adminNav.setAttribute("hidden", "hidden");
+    }
   }
 }
 
