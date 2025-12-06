@@ -16,12 +16,16 @@ export function DocumentsPage() {
                     </div>
                 </div>
 
-                <div class="card">
+                <div class="card timeline-card">
                     <h2 class="card-title">Timeline Pengerjaan</h2>
-                    <div class="empty-state">
-                        <div class="empty-state-icon">📅</div>
-                        <p class="empty-state-text">Timeline belum tersedia</p>
-                        <p class="empty-state-subtext">Jadwal milestone dan deadline akan muncul di sini</p>
+                    <div class="timeline-preview">
+                        <div class="timeline-preview-icon">📅</div>
+                        <div class="timeline-preview-content">
+                            <p class="timeline-preview-text">Lihat jadwal milestone dan deadline capstone project</p>
+                            <a href="#timeline" class="btn btn-primary timeline-view-btn" data-link>
+                                Lihat Timeline
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
