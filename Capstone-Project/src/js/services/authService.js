@@ -1,5 +1,6 @@
-const API_BASE_URL =
-  import.meta.env?.VITE_API_BASE_URL || "http://localhost:3000/api/auth";
+import { API_BASE_URL as BASE_URL } from "../config/api.js";
+
+const API_BASE_URL = `${BASE_URL}/auth`;
 const STORAGE_KEY = "capstone-auth-session";
 
 const defaultHeaders = {
@@ -34,10 +35,17 @@ export async function loginRequest(credentials) {
 }
 
 export async function registerRequest(payload) {
+  // Convert full_name to name for API
+  const apiPayload = {
+    email: payload.email,
+    password: payload.password,
+    name: payload.full_name || payload.name,
+    role: payload.role || "student",
+  };
   const response = await fetch(`${API_BASE_URL}/register`, {
     method: "POST",
     headers: defaultHeaders,
-    body: JSON.stringify(payload),
+    body: JSON.stringify(apiPayload),
   });
   return handleResponse(response);
 }
