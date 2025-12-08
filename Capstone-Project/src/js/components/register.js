@@ -55,7 +55,7 @@ export function RegisterPage() {
 
         <p class="auth-switch">
           Sudah punya akun?
-          <a href="#login" data-link>Masuk sekarang</a>
+          <a href="/login" data-link>Masuk sekarang</a>
         </p>
       </div>
     </section>

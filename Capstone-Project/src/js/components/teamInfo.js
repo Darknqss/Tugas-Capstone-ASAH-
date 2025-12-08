@@ -1,4 +1,5 @@
 import { getDocs, getUseCases } from "../services/userService.js";
+import { getMyTeam } from "../services/groupService.js";
 
 export async function TeamInfoPage() {
     // Default URLs from provided data
@@ -7,13 +8,22 @@ export async function TeamInfoPage() {
     
     let playbookUrl = defaultPlaybookUrl;
     let useCaseUrl = defaultUseCaseUrl;
+    let useCasesOptions = "";
+    let teamData = null;
 
     try {
         const docsResponse = await getDocs();
         const useCasesResponse = await getUseCases();
+        const teamResponse = await getMyTeam();
         
         const docs = docsResponse?.data || [];
         const useCases = useCasesResponse?.data || [];
+        teamData = teamResponse?.data || null;
+        
+        // Build use case options
+        useCasesOptions = useCases.map(uc => 
+            `<option value="${uc.id}">${uc.name} - ${uc.company || ''}</option>`
+        ).join('');
         
         // Find Capstone Playbook (capstone_docs_source_id: "1" or title contains "playbook")
         const playbook = docs.find(doc => 
@@ -25,17 +35,58 @@ export async function TeamInfoPage() {
         }
         
         // Find Use Case document (capstone_docs_source_id: "2" or title contains "use-case")
-        const useCase = useCases.find(uc => 
-            uc.capstone_docs_source_id === "2" || 
-            uc.title?.toLowerCase().includes("use-case") ||
-            uc.title?.toLowerCase().includes("use case")
+        const useCase = docs.find(doc => 
+            doc.capstone_docs_source_id === "2" || 
+            doc.title?.toLowerCase().includes("use-case") ||
+            doc.title?.toLowerCase().includes("use case")
         );
         if (useCase?.url) {
             useCaseUrl = useCase.url;
         }
     } catch (error) {
-        console.error("Error fetching docs/use cases:", error);
+        console.error("Error fetching data:", error);
         // Use default URLs if API fails
+    }
+    
+    // Render team members
+    let teamMembersHtml = "";
+    if (teamData?.members && teamData.members.length > 0) {
+        teamMembersHtml = `
+            <div class="team-members-list">
+                <div class="team-info-header">
+                    <h3>${teamData.group_name || 'Tim Saya'}</h3>
+                    <span class="status-badge status-badge--${(teamData.status || 'pending').toLowerCase().replace(/_/g, '-')}">${(teamData.status || 'Pending').replace(/_/g, ' ')}</span>
+                </div>
+                <div class="members-table-container">
+                    <table class="members-table">
+                        <thead>
+                            <tr>
+                                <th>Nama</th>
+                                <th>Role</th>
+                                <th>Learning Path</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${teamData.members.map(member => `
+                                <tr>
+                                    <td><strong>${member.name || 'N/A'}</strong></td>
+                                    <td><span class="role-badge role-badge--${(member.role || 'member').toLowerCase()}">${(member.role || 'member').charAt(0).toUpperCase() + (member.role || 'member').slice(1)}</span></td>
+                                    <td>${member.learning_path || 'N/A'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    } else {
+        teamMembersHtml = `
+            <div class="empty-state">
+                <div class="empty-state-icon">👥</div>
+                <p class="empty-state-text">Belum ada anggota terdaftar</p>
+                <p class="empty-state-subtext">Silakan melakukan registrasi terlebih dahulu</p>
+            </div>
+        `;
     }
 
     return `
@@ -46,6 +97,7 @@ export async function TeamInfoPage() {
             </div>
 
             <div class="dashboard-grid" style="grid-template-columns: 1fr;">
+                ${!teamData || !teamData.id ? `
                 <div class="card">
                     <h2 class="card-title">Informasi Tim</h2>
                     <div class="registration-row">
@@ -63,28 +115,17 @@ export async function TeamInfoPage() {
                             <input type="text" id="team-name" name="team_name" placeholder="Contoh: GEMBROT SQUAD" required />
                         </div>
                         <div class="form-row">
-                            <label for="member-id">ID Anggota</label>
-                            <input type="text" id="member-id" name="member_id" placeholder="Masukkan ID anggota (NIM)" required />
-                        </div>
-                        <div class="form-row">
-                            <label for="learning-path">Learning Path</label>
-                            <select id="learning-path" name="learning_path" required>
-                                <option value="" disabled selected>Pilih learning path</option>
-                                <option value="Machine Learning">Machine Learning</option>
-                                <option value="Cloud Computing">Cloud Computing</option>
-                                <option value="Front-End">Front-End</option>
-                                <option value="Back-End">Back-End</option>
-                            </select>
-                        </div>
-                        <div class="form-row">
                             <label for="use-case">Use Case</label>
-                            <select id="use-case" name="use_case" required>
+                            <select id="use-case" name="use_case_source_id" required>
                                 <option value="" disabled selected>Pilih use case</option>
-                                <option value="Smart Agriculture">Smart Agriculture</option>
-                                <option value="Smart City Services">Smart City Services</option>
-                                <option value="Financial Technology">Financial Technology</option>
-                                <option value="Healthcare Monitoring">Healthcare Monitoring</option>
+                                ${useCasesOptions}
                             </select>
+                            <p class="form-hint">Pilih use case yang akan dikerjakan tim Anda</p>
+                        </div>
+                        <div class="form-row">
+                            <label for="member-ids">ID Anggota Tim (pisahkan dengan koma)</label>
+                            <textarea id="member-ids" name="member_source_ids" rows="3" placeholder="FUI0001, FUI0002, FUI0003" required></textarea>
+                            <p class="form-hint">Masukkan ID anggota tim, pisahkan dengan koma. Contoh: FUI0001, FUI0002, FUI0003</p>
                         </div>
                         <div class="form-actions">
                             <button type="submit" class="btn btn-primary">Daftarkan Tim</button>
@@ -92,14 +133,11 @@ export async function TeamInfoPage() {
                     </form>
                     <div class="registration-summary" data-registration-summary hidden></div>
                 </div>
+                ` : ''}
 
                 <div class="card">
                     <h2 class="card-title">Anggota Tim</h2>
-                    <div class="empty-state">
-                        <div class="empty-state-icon">👥</div>
-                        <p class="empty-state-text">Belum ada anggota terdaftar</p>
-                        <p class="empty-state-subtext">Silakan melakukan registrasi terlebih dahulu</p>
-                    </div>
+                    ${teamMembersHtml}
                 </div>
 
                 <div class="card">

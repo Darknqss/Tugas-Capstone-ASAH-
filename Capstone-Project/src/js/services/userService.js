@@ -1,6 +1,5 @@
 import { readSession } from "./authService.js";
-
-const API_BASE_URL = "http://localhost:3000/api";
+import { API_BASE_URL } from "../config/api.js";
 
 function getAuthHeaders() {
   const session = readSession();
@@ -27,6 +26,14 @@ async function handleResponse(response) {
   }
 
   return payload;
+}
+
+export async function getProfile() {
+  const response = await fetch(`${API_BASE_URL}/user/profile`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(response);
 }
 
 export async function getDocs() {

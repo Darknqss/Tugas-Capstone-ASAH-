@@ -6,6 +6,8 @@
   justify-content: center;
   padding: 40px 20px 60px;
   background-color: #dcdcdc;
+  position: relative;
+  z-index: 1;
 }
 
 .auth-card {
@@ -14,6 +16,9 @@
   border-radius: 16px;
   padding: 32px;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+  position: relative;
+  z-index: 2;
+  pointer-events: auto;
 }
 
 .auth-card__header {
@@ -41,6 +46,9 @@
   display: flex;
   flex-direction: column;
   gap: 18px;
+  position: relative;
+  z-index: 3;
+  pointer-events: auto;
 }
 
 .form-group {
@@ -58,13 +66,50 @@
 }
 
 .auth-form input,
-.auth-form select {
+.auth-form select,
+.auth-form button {
   width: 100%;
   border: 2px solid #c9c9c9;
   border-radius: 8px;
   padding: 12px 14px;
   background-color: #f8f8f8;
   transition: border-color 0.2s, box-shadow 0.2s;
+  pointer-events: auto;
+  cursor: pointer;
+  font: inherit;
+}
+
+.auth-form input,
+.auth-form select {
+  cursor: text;
+}
+
+.auth-form button[type="submit"],
+.auth-form .btn,
+.auth-form button.btn {
+  background-color: var(--primary-color) !important;
+  color: var(--white) !important;
+  border-color: var(--primary-color) !important;
+  font-weight: 600;
+  cursor: pointer !important;
+  pointer-events: auto !important;
+  border: none;
+  opacity: 1 !important;
+  z-index: 10;
+  position: relative;
+}
+
+.auth-form button[type="submit"]:hover,
+.auth-form .btn:hover {
+  background-color: var(--dark-blue);
+  border-color: var(--dark-blue);
+}
+
+.auth-form button[type="submit"]:disabled,
+.auth-form .btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 .auth-form input:focus,
@@ -139,6 +184,22 @@
 .auth-switch a {
   color: var(--secondary-color);
   font-weight: 600;
+  text-decoration: none;
+  transition: color 0.3s;
+}
+
+.auth-switch a:hover {
+  color: var(--primary-color);
+  text-decoration: underline;
+}
+
+.auth-form__button,
+.auth-form button[type="submit"] {
+  width: 100%;
+  padding: 12px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  pointer-events: auto;
 }
 
 

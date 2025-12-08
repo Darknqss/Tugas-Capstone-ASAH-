@@ -103,7 +103,7 @@ export async function TimelinePage() {
             <h1 class="section-title">Timeline Pengerjaan</h1>
             <p class="section-description">Jadwal milestone dan deadline capstone project</p>
           </div>
-          <a href="#dokumen-timeline" class="btn btn-outline timeline-back-btn" data-link>
+          <a href="/dokumen-timeline" class="btn btn-outline timeline-back-btn" data-link>
             Kembali ke Dokumen & Timeline
           </a>
         </div>

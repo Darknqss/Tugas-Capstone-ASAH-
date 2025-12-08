@@ -23,11 +23,11 @@ export function LoginPage() {
             <p class="form-error" data-error="password"></p>
           </div>
 
-          <button type="submit" class="auth-form__button">Masuk</button>
+          <button type="submit" class="btn btn-primary btn-full" data-submit-text="Masuk">Masuk</button>
         </form>
 
-        <p class="auth-footer">
-          Belum punya akun? <a href="/#/register">Daftar di sini</a>
+        <p class="auth-switch">
+          Belum punya akun? <a href="/register" data-link>Daftar di sini</a>
         </p>
       </div>
     </section>
