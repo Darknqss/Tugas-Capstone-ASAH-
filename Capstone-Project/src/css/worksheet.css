@@ -1,0 +1,179 @@
+/* Individual Worksheet Page Styles */
+
+.worksheet-grid {
+  grid-template-columns: 1fr 1fr !important;
+  gap: 24px;
+}
+
+.worksheet-form-card {
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  border: 2px solid #e9ecef;
+}
+
+.worksheet-form-card .card-header {
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #e9ecef;
+}
+
+.card-subtitle {
+  font-size: 14px;
+  color: #6c757d;
+  margin-top: 8px;
+  font-weight: 400;
+}
+
+.worksheet-form {
+  display: grid;
+  gap: 20px;
+}
+
+.form-row-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-row label {
+  font-weight: 600;
+  color: var(--text-dark);
+  font-size: 14px;
+}
+
+.form-row input[type="date"],
+.form-row input[type="url"],
+.form-row textarea,
+.form-row select {
+  border: 2px solid #dfe3e6;
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: #f8f8f8;
+  font-size: 14px;
+  transition: all 0.3s;
+  font-family: "Poppins", sans-serif;
+}
+
+.form-row input[type="date"]:focus,
+.form-row input[type="url"]:focus,
+.form-row textarea:focus,
+.form-row select:focus {
+  outline: none;
+  border-color: var(--secondary-color);
+  box-shadow: 0 0 0 3px rgba(0, 74, 122, 0.08);
+  background: #fff;
+}
+
+.form-row textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.form-hint {
+  font-size: 12px;
+  color: #6c757d;
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+.btn-full {
+  width: 100%;
+}
+
+.worksheets-list {
+  display: grid;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.worksheet-item {
+  padding: 20px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  border: 2px solid #e9ecef;
+  border-radius: 12px;
+  transition: all 0.3s;
+}
+
+.worksheet-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 61, 92, 0.1);
+  border-color: var(--secondary-color);
+}
+
+.worksheet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.worksheet-header h3 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+.worksheet-description {
+  color: #495057;
+  margin: 12px 0;
+  line-height: 1.6;
+  font-size: 14px;
+}
+
+.worksheet-proof-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--secondary-color);
+  text-decoration: none;
+  margin-top: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.worksheet-proof-link:hover {
+  color: var(--primary-color);
+  text-decoration: underline;
+}
+
+.worksheet-feedback {
+  margin-top: 12px;
+  padding: 12px 16px;
+  background: #fff;
+  border-left: 3px solid var(--secondary-color);
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.worksheet-feedback strong {
+  color: var(--primary-color);
+}
+
+.worksheet-meta {
+  margin-top: 12px;
+  font-size: 12px;
+  color: #6c757d;
+  padding-top: 12px;
+  border-top: 1px solid #e9ecef;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .worksheet-grid {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .form-row-group {
+    grid-template-columns: 1fr;
+  }
+}
+

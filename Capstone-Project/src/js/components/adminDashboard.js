@@ -99,7 +99,7 @@ export async function AdminDashboardPage() {
       <div class="card" style="margin-top: 30px;">
         <div class="card-header">
           <h2 class="card-title">Tim Terbaru</h2>
-          <a href="#admin-team-information" class="btn btn-primary btn-small" data-link>Lihat Semua</a>
+          <a href="/admin-team-information" class="btn btn-primary btn-small" data-link>Lihat Semua</a>
         </div>
         <div class="table-container">
           <table class="data-table">
@@ -126,7 +126,7 @@ export async function AdminDashboardPage() {
                     <td><span class="status-badge status-badge--${group.status || "pending"}">${(group.status || "pending").toUpperCase()}</span></td>
                     <td><span class="status-badge status-badge--${group.project_status || "not_started"}">${(group.project_status || "not_started").replace("_", " ").toUpperCase()}</span></td>
                     <td>
-                      <a href="#admin-team-information?groupId=${group.group_id}" class="btn-link" data-link>Detail</a>
+                      <a href="/admin-team-information?groupId=${group.group_id}" class="btn-link" data-link>Detail</a>
                     </td>
                   </tr>
                 `

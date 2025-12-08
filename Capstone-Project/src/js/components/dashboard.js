@@ -2,7 +2,7 @@ import { readSession } from "../services/authService.js";
 
 export function DashboardPage() {
     const session = readSession();
-    const displayName = session?.user?.full_name || session?.user?.email || 'Pengunjung';
+    const displayName = session?.user?.name || session?.user?.full_name || session?.user?.email || 'Pengunjung';
     const heroTitle = session?.user
         ? `Selamat Datang, ${displayName}`
         : 'Selamat Datang, Silahkan Login terlebih dahulu';

@@ -2,7 +2,6 @@ import { readSession } from "../services/authService.js";
 import {
   listAllGroups,
   validateGroupRegistration,
-  updateGroup,
   setGroupRules,
   createGroup,
 } from "../services/adminService.js";
@@ -10,8 +9,8 @@ import {
 export async function AdminTeamInfoPage() {
   const session = readSession();
 
-  // Get groupId from URL params
-  const urlParams = new URLSearchParams(window.location.hash.split("?")[1] || "");
+  // Get groupId from URL params (menggunakan pathname + search, bukan hash)
+  const urlParams = new URLSearchParams(window.location.search);
   const selectedGroupId = urlParams.get("groupId");
 
   // Fetch groups data
