@@ -1,147 +1,162 @@
 <!DOCTYPE html>
 <html lang="id">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Capstone Team Dashboard - Dicoding Indonesia</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="src/style.css" />
-    <link rel="stylesheet" href="src/base.css" />
-  </head>
-  <body>
-    <!-- Header Navigation -->
-    <header class="header">
-      <div class="container">
-        <div class="nav-wrapper">
-          <h1 class="logo">CAPSTONE TEAM</h1>
-          <nav class="nav-menu" data-nav-menu>
-            <!-- Student Navigation -->
-            <div data-student-nav>
-              <a href="/dashboard" class="nav-link active" data-link>Dashboard</a>
-              <a href="/team-information" class="nav-link" data-link
-                >Team Information</a
-              >
-              <a href="/dokumen-timeline" class="nav-link" data-link
-                >Dokumen & Timeline</a
-              >
-              <a href="/individual-worksheet" class="nav-link" data-link
-                >Individual Worksheet</a
-              >
-              <a href="/360-feedback" class="nav-link" data-link>360 Feedback</a>
-            </div>
-            <!-- Admin Navigation -->
-            <div data-admin-nav hidden>
-              <a href="/admin-dashboard" class="nav-link active" data-link>Dashboard Admin</a>
-              <a href="/admin-team-information" class="nav-link" data-link
-                >Team Information</a
-              >
-              <a href="/admin-dokumen-timeline" class="nav-link" data-link
-                >Dokumen & Timeline</a
-              >
-              <a href="/admin-individual-worksheet" class="nav-link" data-link
-                >Individual Worksheet</a
-              >
-              <a href="/admin-360-feedback" class="nav-link" data-link>360 Feedback</a>
-            </div>
-          </nav>
-          <div class="nav-buttons" data-auth-region>
-            <div class="auth-user" data-user-actions hidden>
-              <button
-                type="button"
-                class="user-pill"
-                data-profile-trigger
-                aria-haspopup="dialog"
-              >
-                <span class="user-avatar" data-user-avatar>👤</span>
-                <span class="user-pill__meta">
-                  <span data-user-display></span>
-                  <small data-user-email></small>
-                </span>
-              </button>
-            </div>
-            <div class="auth-guest" data-guest-actions>
-              <a href="/login" class="btn btn-outline" data-link>Masuk</a>
-              <a href="/register" class="btn btn-primary" data-link>Daftar</a>
-            </div>
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Capstone Team Dashboard - Dicoding Indonesia</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="src/style.css" />
+  <link rel="stylesheet" href="src/base.css" />
+</head>
+
+<body>
+  <!-- Header Navigation -->
+  <header class="header">
+    <div class="container">
+      <div class="nav-wrapper">
+        <h1 class="logo">CAPSTONE TEAM</h1>
+        <nav class="nav-menu" data-nav-menu>
+          <!-- Student Navigation -->
+          <div data-student-nav>
+            <a href="/dashboard" class="nav-link active" data-link>Dashboard</a>
+            <a href="/team-information" class="nav-link" data-link>Team Information</a>
+            <a href="/dokumen-timeline" class="nav-link" data-link>Dokumen & Timeline</a>
+            <a href="/individual-worksheet" class="nav-link" data-link>Individual Worksheet</a>
+            <a href="/360-feedback" class="nav-link" data-link>360 Feedback</a>
+          </div>
+          <!-- Admin Navigation -->
+          <div data-admin-nav hidden>
+            <a href="/admin-dashboard" class="nav-link active" data-link>Dashboard Admin</a>
+            <a href="/admin-team-information" class="nav-link" data-link>Team Information</a>
+            <a href="/admin-dokumen-timeline" class="nav-link" data-link>Dokumen & Timeline</a>
+            <a href="/admin-individual-worksheet" class="nav-link" data-link>Individual Worksheet</a>
+            <a href="/admin-360-feedback" class="nav-link" data-link>360 Feedback</a>
+          </div>
+        </nav>
+        <div class="nav-buttons" data-auth-region>
+          <div class="auth-user" data-user-actions hidden>
+            <button type="button" class="user-pill" data-profile-trigger aria-haspopup="dialog">
+              <span class="user-avatar" data-user-avatar>👤</span>
+              <span class="user-pill__meta">
+                <span data-user-display></span>
+                <small data-user-email></small>
+              </span>
+            </button>
+          </div>
+          <div class="auth-guest" data-guest-actions>
+            <a href="/login" class="btn btn-outline" data-link>Masuk</a>
+            <a href="/register" class="btn btn-primary" data-link>Daftar</a>
           </div>
         </div>
       </div>
-    </header>
+    </div>
+  </header>
 
-    <!-- Main Content Area -->
-    <main id="app">
-      <!-- Content will be dynamically loaded here -->
-    </main>
+  <!-- Main Content Area -->
+  <main id="app">
+    <!-- Content will be dynamically loaded here -->
+  </main>
 
-    <div
-      id="toast-root"
-      class="toast"
-      aria-live="polite"
-      aria-atomic="true"
-    ></div>
+  <div id="toast-root" class="toast" aria-live="polite" aria-atomic="true"></div>
 
-    <div class="profile-panel-backdrop" data-profile-backdrop hidden></div>
-    <aside class="profile-panel" data-profile-panel hidden>
-      <div class="profile-panel__header">
-        <div>
-          <p class="profile-panel__subheading">Pengaturan Akun</p>
-          <h3>Profil Pengguna</h3>
-        </div>
-        <button
-          type="button"
-          class="profile-panel__close"
-          data-profile-close
-          aria-label="Tutup panel profil"
-        >
-          ×
-        </button>
+  <div class="profile-panel-backdrop" data-profile-backdrop hidden></div>
+  <aside class="profile-panel" data-profile-panel hidden>
+    <div class="profile-panel__header">
+      <div>
+        <p class="profile-panel__subheading">Pengaturan Akun</p>
+        <h3>Profil Pengguna</h3>
       </div>
-      <form class="profile-form" data-profile-form>
-        <div class="form-group">
-          <label for="profile-fullname">Nama Lengkap</label>
-          <input
-            type="text"
-            id="profile-fullname"
-            name="full_name"
-            placeholder="Nama Lengkap"
-            data-profile-name
-            required
-          />
-          <p class="form-hint">Nama ini akan tampil di dashboard.</p>
-        </div>
+      <button type="button" class="profile-panel__close" data-profile-close aria-label="Tutup panel profil">
+        ×
+      </button>
+    </div>
+    <form class="profile-form" data-profile-form>
+      <div class="profile-grid">
+        <!-- Left Column: Account Details -->
+        <div class="profile-column">
+          <h4 class="profile-section-title">Detail Akun</h4>
 
-        <div class="form-group">
-          <label>Pilih Avatar</label>
-          <div class="avatar-options" role="radiogroup">
-            <label class="avatar-card">
-              <input type="radio" name="avatar" value="male" checked />
-              <span class="avatar-emoji" aria-hidden="true">👨</span>
-              <span>Laki-laki</span>
-            </label>
-            <label class="avatar-card">
-              <input type="radio" name="avatar" value="female" />
-              <span class="avatar-emoji" aria-hidden="true">👩</span>
-              <span>Perempuan</span>
-            </label>
+          <div class="form-group">
+            <label>Pilih Avatar</label>
+            <div class="avatar-options" role="radiogroup">
+              <label class="avatar-card">
+                <input type="radio" name="avatar" value="male" checked />
+                <span class="avatar-emoji" aria-hidden="true">👨</span>
+                <span>Laki-laki</span>
+              </label>
+              <label class="avatar-card">
+                <input type="radio" name="avatar" value="female" />
+                <span class="avatar-emoji" aria-hidden="true">👩</span>
+                <span>Perempuan</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="profile-fullname">Nama Lengkap</label>
+            <input type="text" id="profile-fullname" name="full_name" placeholder="Nama Lengkap" data-profile-name
+              required />
+            <p class="form-hint">Nama ini akan tampil di dashboard.</p>
+          </div>
+
+          <div class="form-group">
+            <label for="profile-student-id">Student ID</label>
+            <input type="text" id="profile-student-id" class="form-input readonly-style" readonly
+              data-profile-student-id placeholder="ID akan muncul setelah login"
+              style="background-color: #e9ecef; cursor: default;" />
           </div>
         </div>
 
-        <button type="submit" class="btn btn-primary btn-full">
+        <!-- Right Column: Academic Details -->
+        <div class="profile-column">
+          <h4 class="profile-section-title">Detail Akademik</h4>
+
+          <div class="form-group">
+            <label for="profile-university">Universitas</label>
+            <input type="text" id="profile-university" name="university" placeholder="Contoh: Universitas Indonesia"
+              data-profile-university />
+          </div>
+
+          <div class="form-group">
+            <label for="profile-learning-group">Learning Group</label>
+            <input type="text" id="profile-learning-group" name="learning_group" placeholder="Contoh: M01"
+              data-profile-learning-group />
+          </div>
+
+          <div class="form-group">
+            <label for="profile-learning-path">Learning Path</label>
+            <select id="profile-learning-path" name="learning_path" data-profile-learning-path>
+              <option value="">Pilih Learning Path</option>
+              <option value="Machine Learning (ML)">Machine Learning (ML)</option>
+              <option value="Front-End Web & Back-End with AI (FEBE)">Front-End Web & Back-End with AI (FEBE)</option>
+              <option value="React & Back-End with AI (REBE)">React & Back-End with AI (REBE)</option>
+            </select>
+            <input type="text" id="profile-learning-path-display" class="form-input readonly-style" readonly hidden
+              data-profile-learning-path-display />
+            <p class="form-hint warning-text">
+              ⚠️ Learning Path hanya bisa diset <strong>SEKALI</strong>.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="profile-actions">
+        <button type="submit" class="btn btn-primary">
           Simpan Perubahan
         </button>
-        <button
-          type="button"
-          class="btn btn-outline btn-full profile-logout"
-          data-logout-button
-        >
+        <button type="button" class="btn btn-outline profile-logout" data-logout-button>
           Logout
         </button>
-      </form>
-    </aside>
+      </div>
+    </form>
+  </aside>
 
-    <!-- Scripts -->
-    <script type="module" src="/src/main.js"></script>
-  </body>
+  <!-- Scripts -->
+  <script type="module" src="/src/main.js"></script>
+</body>
+
 </html>

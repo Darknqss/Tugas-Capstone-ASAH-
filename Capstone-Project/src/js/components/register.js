@@ -32,15 +32,7 @@ export function RegisterPage() {
             <p class="form-error" data-error="password"></p>
           </div>
 
-          <div class="form-group form-group--inline">
-            <label for="register-role">Role</label>
-            <select id="register-role" name="role">
-              <option value="student" selected>Student</option>
-              <option value="admin">Admin</option>
-            </select>
-            <p class="form-hint">Pilih peran Anda pada platform.</p>
-            <p class="form-error" data-error="role"></p>
-          </div>
+
 
           <button type="submit" class="btn btn-primary btn-full" data-submit-text="Daftar">Daftar</button>
         </form>

@@ -13,6 +13,7 @@ import { AdminWorksheetPage } from "./components/adminWorksheet.js";
 import { AdminFeedbackPage } from "./components/adminFeedback.js";
 import { TimelinePage } from "./components/timeline.js";
 import { DeliverablesPage } from "./components/deliverables.js";
+import { TeamRegistrationPage } from "./components/teamRegistration.js";
 import {
   clearSession,
   loginRequest,
@@ -21,6 +22,10 @@ import {
   readSession,
   registerRequest,
 } from "./services/authService.js";
+import {
+  getProfile,
+  updateProfile,
+} from "./services/userService.js";
 import {
   createGroup,
   validateGroupRegistration,
@@ -47,27 +52,29 @@ class App {
       this.handleNavigation();
       this.setupAuthHandlers();
       this.setupProfilePanel();
-    document.addEventListener("capstone:route-rendered", () => {
-      this.renderTeamRegistrationSummary();
-      this.populateTeamRegistrationForm();
-      if (this.pendingRegistrationOpen) {
-        this.toggleTeamRegistrationPanel(true);
-        this.pendingRegistrationOpen = false;
-      }
-      // Handle admin team info detail panel
-      this.handleAdminTeamInfoDetail();
-      // Update navigation visibility based on current route
-      this.updateNavVisibility();
-      // Re-attach form handlers for dynamically loaded forms
-      this.attachFormHandlers();
-      // Pastikan URL tidak memiliki hash setelah route rendered
-      if (window.location.hash) {
-        window.history.replaceState({}, '', window.location.pathname + window.location.search);
-      }
-      this.updateActiveNavLink();
-      // Pastikan nav visibility di-update setelah route rendered
-      this.updateNavVisibility();
-    });
+      document.addEventListener("capstone:route-rendered", () => {
+        this.renderTeamRegistrationSummary();
+        this.populateTeamRegistrationForm();
+        if (this.pendingRegistrationOpen) {
+          this.toggleTeamRegistrationPanel(true);
+          this.pendingRegistrationOpen = false;
+        }
+        // Handle admin team info detail panel
+        this.handleAdminTeamInfoDetail();
+        // Update navigation visibility based on current route
+        this.updateNavVisibility();
+        // Re-attach form handlers for dynamically loaded forms
+        this.attachFormHandlers();
+        // Setup team registration composition validation
+        this.setupTeamRegistrationValidation();
+        // Pastikan URL tidak memiliki hash setelah route rendered
+        if (window.location.hash) {
+          window.history.replaceState({}, '', window.location.pathname + window.location.search);
+        }
+        this.updateActiveNavLink();
+        // Pastikan nav visibility di-update setelah route rendered
+        this.updateNavVisibility();
+      });
       // Load route saat init - ini akan handle refresh juga
       // Pastikan DOM sudah ready sebelum load route
       const loadRoute = () => {
@@ -76,7 +83,7 @@ class App {
         this.updateAuthWidgets();
         this.updateNavVisibility();
       };
-      
+
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', loadRoute);
       } else {
@@ -94,6 +101,7 @@ class App {
     this.router.addRoute("/", DashboardPage);
     this.router.addRoute("/dashboard", DashboardPage);
     this.router.addRoute("/team-information", TeamInfoPage);
+    this.router.addRoute("/team-registration", TeamRegistrationPage);
     this.router.addRoute("/dokumen-timeline", DocumentsPage);
     this.router.addRoute("/individual-worksheet", WorksheetPage);
     this.router.addRoute("/360-feedback", FeedbackPage);
@@ -108,17 +116,17 @@ class App {
     // Auth routes
     this.router.addRoute("/login", LoginPage);
     this.router.addRoute("/register", RegisterPage);
-    
+
     // Admin routes
     this.router.addRoute("/admin-dashboard", AdminDashboardPage);
     this.router.addRoute("/admin-team-information", AdminTeamInfoPage);
     this.router.addRoute("/admin-dokumen-timeline", AdminDocumentsPage);
     this.router.addRoute("/admin-individual-worksheet", AdminWorksheetPage);
     this.router.addRoute("/admin-360-feedback", AdminFeedbackPage);
-    
+
     // Timeline route
     this.router.addRoute("/timeline", TimelinePage);
-    
+
     // Deliverables route
     this.router.addRoute("/deliverables", DeliverablesPage);
   }
@@ -156,7 +164,7 @@ class App {
       try {
         const form = event.target;
         if (!form || !form.tagName || form.tagName !== 'FORM') return;
-        
+
         if (form.hasAttribute('data-auth-form')) {
           const formType = form.getAttribute('data-auth-form');
           if (formType === 'login') {
@@ -179,6 +187,35 @@ class App {
           this.handleProfileUpdate(form);
           return;
         }
+
+        // Admin Forms
+        if (form.matches('[data-form="create-group"]')) {
+          event.preventDefault();
+          this.handleCreateGroup(form);
+          return;
+        }
+        if (form.matches('[data-form="set-rules"]')) {
+          event.preventDefault();
+          this.handleSetRules(form);
+          return;
+        }
+        if (form.matches('[data-form="validate-group"]')) {
+          event.preventDefault();
+          this.handleValidateGroup(form);
+          return;
+        }
+        if (form.matches('[data-form="validate-worksheet"]')) {
+          event.preventDefault();
+          this.handleValidateWorksheet(form);
+          return;
+        }
+        if (form.matches('[data-form="edit-member"]')) {
+          event.preventDefault();
+          this.handleUpdateUserLearningPath(form);
+          return;
+        }
+
+
 
         if (form.matches("[data-registration-form]")) {
           event.preventDefault();
@@ -268,13 +305,8 @@ class App {
       );
       if (registrationToggle) {
         event.preventDefault();
-        const panel = document.querySelector("[data-registration-panel]");
-        if (panel) {
-          this.toggleTeamRegistrationPanel(true);
-        } else {
-          this.pendingRegistrationOpen = true;
-          this.router.navigate("team-information");
-        }
+        // Navigate to new team registration page
+        this.router.navigate("/team-registration");
       }
 
 
@@ -740,7 +772,7 @@ class App {
     } finally {
       clearSession();
       this.updateAuthWidgets();
-       this.toggleProfilePanel(false);
+      this.toggleProfilePanel(false);
       this.showToast("Anda sudah keluar.");
       this.router.navigate("login");
     }
@@ -822,7 +854,7 @@ class App {
       profileTrigger?.removeAttribute("disabled");
 
       // Show appropriate navigation based on role
-      const isAdmin = session.user.role === "admin";
+      const isAdmin = session.user.role?.toLowerCase() === "admin";
       if (isAdmin) {
         studentNav?.setAttribute("hidden", "hidden");
         adminNav?.removeAttribute("hidden");
@@ -867,12 +899,111 @@ class App {
     }
   }
 
-  populateProfileForm() {
+  async populateProfileForm() {
     const form = this.profilePanel?.querySelector("[data-profile-form]");
     if (!form) return;
     const session = this.ensureSessionDefaults(readSession());
-    const nameInput = form.querySelector("[data-profile-name]");
-    if (session?.user) {
+    console.log("[DEBUG] Populating Profile. Session:", session);
+
+
+    if (!session?.user) {
+      form.reset();
+      const nameInput = form.querySelector("[data-profile-name]");
+      if (nameInput) nameInput.value = "";
+      this.syncAvatarCards(form, "male");
+      return;
+    }
+
+    // Fetch latest profile from API
+    try {
+      const profileResponse = await getProfile();
+      console.log("[DEBUG] API Profile Response:", profileResponse);
+      const profileData = profileResponse?.data || {};
+      console.log("[DEBUG] Extracted Profile Data:", profileData);
+      console.log("[DEBUG] Learning Path Value:", profileData.learning_path);
+
+      // Populate form fields
+      const nameInput = form.querySelector("[data-profile-name]");
+      if (nameInput) {
+        nameInput.value = profileData.name || session.user.name || session.user.full_name || "";
+      }
+
+      const studentIdInput = form.querySelector("[data-profile-student-id]");
+      if (studentIdInput) {
+        studentIdInput.value = profileData.users_source_id || session.user.users_source_id || "-";
+      }
+
+      // Apply Admin Theme if role is admin
+      const role = (profileData.role || session.user.role || "").toLowerCase();
+      const isAdmin = role === 'admin';
+      if (this.profilePanel) {
+        if (isAdmin) {
+          this.profilePanel.classList.add('admin-theme');
+        } else {
+          this.profilePanel.classList.remove('admin-theme');
+        }
+      }
+
+      const avatarValue = session.user.avatar || "male";
+      const radio = form.querySelector(
+        `input[name="avatar"][value="${avatarValue}"]`,
+      );
+      if (radio) radio.checked = true;
+      this.syncAvatarCards(form, avatarValue);
+
+      // Populate learning_path, university, learning_group
+      // Populate learning_path, university, learning_group
+      const learningPathSelect = form.querySelector("[data-profile-learning-path]");
+      const learningPathDisplay = form.querySelector("[data-profile-learning-path-display]");
+
+      if (learningPathSelect) {
+        const currentLearningPath = profileData.learning_path || "";
+
+        // Toggle between Select (Edit) and Input (Readonly)
+        if (currentLearningPath) {
+          // MODE: LOCKED / READONLY
+          // Show the input field with the text from DB
+          if (learningPathDisplay) {
+            learningPathDisplay.hidden = false;
+            learningPathDisplay.value = currentLearningPath;
+            learningPathDisplay.style.backgroundColor = "#e9ecef";
+            learningPathDisplay.style.cursor = "default";
+            // Optional: visual clue it's locked
+            learningPathDisplay.title = "Learning Path sudah diset";
+          }
+          // Hide the select dropdown
+          learningPathSelect.hidden = true;
+          learningPathSelect.disabled = true;
+        } else {
+          // MODE: EDIT
+          // Show the select dropdown
+          learningPathSelect.hidden = false;
+          learningPathSelect.disabled = false;
+          learningPathSelect.value = "";
+          learningPathSelect.style.backgroundColor = "";
+          learningPathSelect.style.cursor = "pointer";
+
+          // Hide the input field
+          if (learningPathDisplay) {
+            learningPathDisplay.hidden = true;
+            learningPathDisplay.value = "";
+          }
+        }
+      }
+
+      const universityInput = form.querySelector("[data-profile-university]");
+      if (universityInput) {
+        universityInput.value = profileData.university || "";
+      }
+
+      const learningGroupInput = form.querySelector("[data-profile-learning-group]");
+      if (learningGroupInput) {
+        learningGroupInput.value = profileData.learning_group || "";
+      }
+    } catch (error) {
+      console.error("Error fetching profile:", error);
+      // Fallback to session data if API fails
+      const nameInput = form.querySelector("[data-profile-name]");
       if (nameInput) nameInput.value = session.user.name || session.user.full_name || "";
       const avatarValue = session.user.avatar || "male";
       const radio = form.querySelector(
@@ -880,10 +1011,6 @@ class App {
       );
       if (radio) radio.checked = true;
       this.syncAvatarCards(form, avatarValue);
-    } else {
-      form.reset();
-      if (nameInput) nameInput.value = "";
-      this.syncAvatarCards(form, "male");
     }
   }
 
@@ -905,45 +1032,110 @@ class App {
       return;
     }
 
-    const formData = new FormData(form);
-    const rawName = formData.get("full_name");
-    const newName =
-      (typeof rawName === "string" ? rawName.trim() : "") ||
-      session.user.name ||
-      session.user.full_name ||
-      session.user.email;
-    const rawAvatar = formData.get("avatar");
-    const avatar =
-      (typeof rawAvatar === "string" ? rawAvatar : session.user.avatar) ||
-      "male";
+    try {
+      this.toggleSubmitLoading(form, true);
 
-    const updatedSession = {
-      ...session,
-      user: {
-        ...session.user,
+      // Get current profile to check if learning_path is already set
+      const currentProfile = await getProfile();
+      const currentLearningPath = currentProfile?.data?.learning_path;
+
+      const formData = new FormData(form);
+      const rawName = formData.get("full_name");
+      const newName =
+        (typeof rawName === "string" ? rawName.trim() : "") ||
+        session.user.name ||
+        session.user.full_name ||
+        session.user.email;
+      const rawAvatar = formData.get("avatar");
+      const avatar =
+        (typeof rawAvatar === "string" ? rawAvatar : session.user.avatar) ||
+        "male";
+
+      // Get new values from form
+      const learningPath = formData.get("learning_path")?.toString().trim() || "";
+      const university = formData.get("university")?.toString().trim() || "";
+      const learningGroup = formData.get("learning_group")?.toString().trim() || "";
+
+      // Strict Check: If learning_path is already set in DB, user cannot change it
+      if (currentLearningPath && learningPath && learningPath !== currentLearningPath) {
+        this.showToast(" sLearning Pathudah diset dan tidak bisa diubah.");
+        // Revert UI to current value
+        const learningPathSelect = form.querySelector("[data-profile-learning-path]");
+        if (learningPathSelect) {
+          learningPathSelect.value = currentLearningPath;
+          learningPathSelect.disabled = true;
+        }
+        this.toggleSubmitLoading(form, false);
+        return;
+      }
+
+      // Prepare payload
+      const payload = {
         name: newName,
-        full_name: newName, // Keep for backward compatibility
-        avatar,
-      },
-    };
+        university: university,
+        learning_group: learningGroup,
+      };
 
-    persistSession(updatedSession);
-    this.updateAuthWidgets();
-    this.populateProfileForm();
-    this.showToast("Profil berhasil diperbarui.");
-    this.toggleProfilePanel(false);
-    this.router.loadRoute();
+      console.log("[DEBUG] Current Profile:", currentProfile);
+      console.log("[DEBUG] Current Learning Path:", currentLearningPath);
+      console.log("[DEBUG] New Learning Path from Form:", learningPath);
+
+      // Only include learning_path if it's NOT currently set and user provided a value
+      if (!currentLearningPath && learningPath) {
+        payload.learning_path = learningPath;
+        console.log("[DEBUG] Adding learning_path to payload");
+      } else {
+        console.log("[DEBUG] NOT adding learning_path. Reason:",
+          currentLearningPath ? "Already set" : "No new value provided");
+      }
+
+      console.log("Updating profile with payload:", payload);
+
+      const updateResponse = await updateProfile(payload);
+
+      // Update session with new data
+      const updatedSession = {
+        ...session,
+        user: {
+          ...session.user,
+          name: updateResponse?.data?.name || newName,
+          full_name: updateResponse?.data?.name || newName,
+          email: updateResponse?.data?.email || session.user.email,
+          role: updateResponse?.data?.role || session.user.role,
+          avatar, // Avatar is local-only for now as it's not in the API payload
+          learning_path: updateResponse?.data?.learning_path || currentLearningPath || learningPath,
+          university: updateResponse?.data?.university || university,
+          learning_group: updateResponse?.data?.learning_group || learningGroup,
+        },
+      };
+
+      persistSession(updatedSession);
+      this.updateAuthWidgets();
+      await this.populateProfileForm();
+      this.showToast("Profil berhasil diperbarui.");
+      this.toggleProfilePanel(false);
+
+      // Reload route content to reflect changes (e.g. if dashboard shows name)
+      this.router.loadRoute();
+
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      const errorMessage = error?.message || "Gagal memperbarui profil.";
+      this.showToast(errorMessage);
+    } finally {
+      this.toggleSubmitLoading(form, false);
+    }
   }
 
   async handleTeamRegistrationSubmit(form) {
     event.preventDefault();
     this.resetFormState(form);
     const formData = new FormData(form);
-    
+
     const groupName = formData.get("team_name")?.toString().trim() || "";
     const useCaseSourceId = formData.get("use_case_source_id")?.toString().trim() || "";
     const memberIdsStr = formData.get("member_source_ids")?.toString().trim() || "";
-    
+
     // Parse member IDs from comma-separated string
     const memberSourceIds = memberIdsStr
       .split(",")
@@ -980,7 +1172,7 @@ class App {
   async handleWorksheetSubmit(form) {
     this.resetFormState(form);
     const formData = new FormData(form);
-    
+
     const payload = {
       period_start: formData.get("period_start")?.trim() || "",
       period_end: formData.get("period_end")?.trim() || "",
@@ -1011,7 +1203,7 @@ class App {
   async handleDeliverableSubmit(form) {
     this.resetFormState(form);
     const formData = new FormData(form);
-    
+
     const payload = {
       document_type: formData.get("document_type")?.trim() || "",
       file_path: formData.get("file_path")?.trim() || "",
@@ -1042,7 +1234,7 @@ class App {
     this.resetFormState(form);
     const formData = new FormData(form);
     const revieweeId = form.getAttribute("data-reviewee-id");
-    
+
     if (!revieweeId) {
       this.showToast("ID anggota tidak ditemukan.");
       return;
@@ -1161,6 +1353,14 @@ class App {
   }
 
   // Admin handlers
+  attachFormHandlers() {
+    // ... existing ... 
+    // Add logic to attach handlers for admin specific generated content if needed
+    // But since we use delegation in handleNavigation/setupAuthHandlers, we might just add cases there.
+  }
+
+  // ... existing Admin Actions ...
+
   async handleAdminAction(action) {
     switch (action) {
       case "create-group":
@@ -1179,6 +1379,50 @@ class App {
         console.warn("Unknown admin action:", action);
     }
   }
+
+  // Handler for opening Edit Member Modal
+  openEditMemberModal(userId) {
+    const modal = document.querySelector('[data-modal="edit-member"]');
+    const backdrop = document.querySelector("[data-modal-backdrop]");
+    const userIdInput = modal?.querySelector("[data-user-id-input]");
+
+    if (modal && backdrop && userIdInput) {
+      userIdInput.value = userId;
+      modal.hidden = false;
+      backdrop.hidden = false;
+    }
+  }
+
+  async handleUpdateUserLearningPath(form) {
+    this.resetFormState(form);
+    const formData = new FormData(form);
+    const userId = formData.get("user_id");
+    const learningPath = formData.get("learning_path");
+
+    if (!userId || !learningPath) {
+      this.showFormFeedback(form, "Pilih Learning Path baru", true);
+      return;
+    }
+
+    const payload = { learning_path: learningPath };
+
+    try {
+      this.toggleSubmitLoading(form, true);
+      const { updateUserLearningPath } = await import("./services/adminService.js");
+      await updateUserLearningPath(userId, payload);
+      this.showToast("Learning Path berhasil diperbarui ✅");
+      this.closeModal();
+      form.reset();
+      this.router.loadRoute(); // Refresh to show changes
+    } catch (error) {
+      this.applyApiErrors(form, error);
+    } finally {
+      this.toggleSubmitLoading(form, false);
+    }
+  }
+
+  // ... existing methods ...
+
 
   openModal(modalName) {
     const modal = document.querySelector(`[data-modal="${modalName}"]`);
@@ -1267,6 +1511,7 @@ class App {
   }
 
   async handleValidateGroup(form) {
+    console.log("[DEBUG] Handling Validate Group Submission");
     this.resetFormState(form);
     const formData = new FormData(form);
     const groupId = formData.get("group_id");
@@ -1377,7 +1622,7 @@ class App {
       const { exportFeedbackData } = await import("./services/adminService.js");
       const response = await exportFeedbackData();
       const data = response?.data || [];
-      
+
       // Convert to CSV
       if (data.length === 0) {
         this.showToast("Tidak ada data feedback untuk diekspor");
@@ -1408,11 +1653,59 @@ class App {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
       this.showToast("Data feedback berhasil diekspor ✅");
     } catch (error) {
       this.showToast("Gagal mengekspor data feedback");
       console.error("Error exporting feedback:", error);
+    }
+  }
+
+  async handleFeedbackSubmit(form) {
+    this.resetFormState(form);
+    const formData = new FormData(form);
+    const revieweeId = form.dataset.revieweeId;
+
+    console.log("[DEBUG] Feedback Submission:", {
+      revieweeId,
+      formData: Object.fromEntries(formData.entries())
+    });
+
+    if (!revieweeId) {
+      this.showToast("Error: Reviewee ID missing from form");
+      return;
+    }
+
+    const payload = {
+      reviewee_source_id: revieweeId,
+      is_member_active: formData.get("is_member_active") === "true",
+      contribution_level: formData.get("contribution_level"),
+      reason: formData.get("reason")?.trim()
+    };
+
+    console.log("[DEBUG] Feedback Payload:", payload);
+
+    if (!payload.contribution_level) {
+      this.showFormFeedback(form, "Pilih tingkat kontribusi", true);
+      return;
+    }
+
+    if (!payload.reason) {
+      this.showFormFeedback(form, "Alasan wajib diisi", true);
+      return;
+    }
+
+    try {
+      this.toggleSubmitLoading(form, true);
+      const { submitFeedback } = await import("./services/groupService.js");
+      await submitFeedback(payload);
+      this.showToast("Penilaian berhasil dikirim ✅");
+      form.reset();
+      this.router.loadRoute(); // Refresh status list
+    } catch (error) {
+      this.applyApiErrors(form, error);
+    } finally {
+      this.toggleSubmitLoading(form, false);
     }
   }
 
@@ -1500,7 +1793,7 @@ class App {
     // Ensure form handlers are attached to newly rendered forms
     const loginForm = document.querySelector('[data-auth-form="login"]');
     const registerForm = document.querySelector('[data-auth-form="register"]');
-    
+
     if (loginForm && !loginForm.dataset.handlerAttached) {
       loginForm.dataset.handlerAttached = 'true';
       loginForm.addEventListener('submit', (e) => {
@@ -1509,7 +1802,7 @@ class App {
         this.handleLogin(loginForm);
       });
     }
-    
+
     if (registerForm && !registerForm.dataset.handlerAttached) {
       registerForm.dataset.handlerAttached = 'true';
       registerForm.addEventListener('submit', (e) => {
@@ -1518,6 +1811,234 @@ class App {
         this.handleRegister(registerForm);
       });
     }
+  }
+
+  setupTeamRegistrationValidation() {
+    // Only run on team registration page
+    if (!window.location.pathname.includes('/team-registration')) return;
+
+    // Only run on team registration page
+    if (!window.location.pathname.includes('/team-registration')) return;
+
+    console.log("=== SETUP TEAM REGISTRATION VALIDATION ===");
+
+    // Store rules data from component if available
+    const rulesDataScript = document.querySelector('script[data-rules-data]');
+    console.log("Rules data script found:", !!rulesDataScript);
+
+    if (rulesDataScript) {
+      try {
+        const rulesData = JSON.parse(rulesDataScript.textContent);
+        window.teamRegistrationRules = rulesData.rulesByUseCase || {};
+        window.allRules = rulesData.rules || [];
+        console.log('✅ Rules data loaded:', {
+          rulesByUseCase: window.teamRegistrationRules,
+          rulesByUseCaseKeys: Object.keys(window.teamRegistrationRules),
+          allRules: window.allRules,
+          allRulesCount: window.allRules.length
+        });
+      } catch (e) {
+        console.error('❌ Failed to parse rules data:', e);
+        console.error('Script content:', rulesDataScript.textContent);
+      }
+    } else {
+      console.warn("⚠️ Rules data script not found!");
+    }
+
+    const memberIdsInput = document.querySelector('[data-member-ids-input]');
+    const compositionStatus = document.querySelector('[data-composition-status]');
+    const useCaseRadios = document.querySelectorAll('[data-use-case-radio]');
+    const rulesContent = document.querySelector('[data-rules-content]');
+    const rulesFooter = document.querySelector('[data-rules-footer]');
+    const rulesCount = document.querySelector('[data-rules-count]');
+
+    console.log("Elements found:", {
+      memberIdsInput: !!memberIdsInput,
+      compositionStatus: !!compositionStatus,
+      useCaseRadios: useCaseRadios.length,
+      rulesContent: !!rulesContent,
+      rulesFooter: !!rulesFooter,
+      rulesCount: !!rulesCount
+    });
+
+    // Handle use case selection to filter rules
+    if (useCaseRadios.length > 0 && rulesContent) {
+      console.log("Setting up use case radio handlers...");
+
+      useCaseRadios.forEach((radio, index) => {
+        // Remove existing listeners
+        const newRadio = radio.cloneNode(true);
+        radio.parentNode.replaceChild(newRadio, radio);
+
+        newRadio.addEventListener('change', () => {
+          console.log(`Radio ${index} changed, checked:`, newRadio.checked);
+
+          if (newRadio.checked) {
+            const useCaseItem = newRadio.closest('[data-use-case-id]');
+            const useCaseId = useCaseItem?.getAttribute('data-use-case-id');
+
+            console.log('=== USE CASE SELECTED ===');
+            console.log('Use case ID:', useCaseId);
+            console.log('Available rules:', window.teamRegistrationRules);
+            console.log('Rules keys:', Object.keys(window.teamRegistrationRules || {}));
+
+            if (useCaseId && window.teamRegistrationRules) {
+              // Try exact match first
+              const useCaseIdStr = String(useCaseId).trim();
+              let rules = window.teamRegistrationRules[useCaseIdStr] || [];
+
+              // If no exact match, try case-insensitive
+              if (rules.length === 0) {
+                const matchingKey = Object.keys(window.teamRegistrationRules).find(key =>
+                  String(key).trim().toLowerCase() === useCaseIdStr.toLowerCase()
+                );
+                if (matchingKey) {
+                  rules = window.teamRegistrationRules[matchingKey] || [];
+                  console.log('✅ Found rules with case-insensitive match:', matchingKey);
+                }
+              }
+
+              console.log('Rules for use case:', useCaseIdStr, rules);
+              console.log('Rules count:', rules.length);
+
+              if (rules.length > 0) {
+                // Group rules by learning path
+                const groupedRules = {};
+                rules.forEach(rule => {
+                  const key = rule.attribute_value || 'other';
+                  if (!groupedRules[key]) {
+                    groupedRules[key] = [];
+                  }
+                  groupedRules[key].push(rule);
+                });
+
+                let rulesHtml = '';
+                Object.entries(groupedRules).forEach(([key, ruleGroup]) => {
+                  rulesHtml += ruleGroup.map(rule => {
+                    const attributeValue = rule.attribute_value || '';
+                    const operator = rule.operator || '';
+                    const value = rule.value || '';
+
+                    let icon = '📌';
+                    let label = '';
+
+                    if (attributeValue) {
+                      const valueLower = attributeValue.toLowerCase();
+                      if (valueLower.includes('machine learning') || valueLower.includes('ml')) {
+                        icon = '🤖';
+                        label = 'Machine Learning';
+                      } else if (valueLower.includes('front-end') || valueLower.includes('back-end') || valueLower.includes('febe') || valueLower.includes('web & back-end')) {
+                        icon = '💻';
+                        label = 'Front-End & Back-End';
+                      } else if (valueLower.includes('react & back-end')) {
+                        icon = '⚛️';
+                        label = 'React & Back-End';
+                      } else if (valueLower.includes('cloud computing') || valueLower.includes('cloud')) {
+                        icon = '☁️';
+                        label = 'Cloud Computing';
+                      } else {
+                        label = attributeValue;
+                      }
+                    }
+
+                    const opLabel = this.getRuleOperatorLabel(operator);
+
+                    return `
+                      <div class="rule-item" data-rule-id="${rule.id}">
+                        <div class="rule-item-header">
+                          <span class="rule-icon">${icon}</span>
+                          <span class="rule-label">${label}</span>
+                        </div>
+                        <div class="rule-item-body">
+                          <span class="rule-operator">${opLabel}</span>
+                          <span class="rule-value">${value} orang</span>
+                        </div>
+                      </div>
+                    `;
+                  }).join('');
+                });
+
+                console.log('Updating rules content with', rules.length, 'rules');
+                rulesContent.innerHTML = rulesHtml;
+                if (rulesCount) {
+                  rulesCount.textContent = `${rules.length} Aturan`;
+                }
+                if (rulesFooter) {
+                  rulesFooter.hidden = false;
+                }
+              } else {
+                console.log('No rules found for this use case');
+                rulesContent.innerHTML = '<div class="rules-placeholder"><p class="rules-placeholder-text">Tidak ada aturan untuk use case ini</p></div>';
+                if (rulesCount) {
+                  rulesCount.textContent = '0 Aturan';
+                }
+                if (rulesFooter) {
+                  rulesFooter.hidden = true;
+                }
+              }
+            } else {
+              console.warn('Missing useCaseId or rules data:', { useCaseId, hasRules: !!window.teamRegistrationRules });
+            }
+          }
+        });
+      });
+
+      console.log("✅ Use case radio handlers set up");
+    } else {
+      console.warn("⚠️ Cannot set up handlers:", {
+        hasRadios: useCaseRadios.length > 0,
+        hasRulesContent: !!rulesContent
+      });
+    }
+
+    console.log("=== END SETUP TEAM REGISTRATION VALIDATION ===");
+
+    if (!memberIdsInput || !compositionStatus) return;
+
+    // Remove existing listener if any
+    const newInput = memberIdsInput.cloneNode(true);
+    memberIdsInput.parentNode.replaceChild(newInput, memberIdsInput);
+
+    let validationTimeout;
+
+    newInput.addEventListener('input', () => {
+      clearTimeout(validationTimeout);
+      const memberIds = newInput.value.split(',').map(id => id.trim()).filter(id => id.length > 0);
+
+      if (memberIds.length === 0) {
+        compositionStatus.hidden = true;
+        return;
+      }
+
+      // Show validation status
+      compositionStatus.hidden = false;
+      const statusText = compositionStatus.querySelector('.status-text');
+      const statusIcon = compositionStatus.querySelector('.status-icon');
+
+      if (statusText && statusIcon) {
+        statusText.textContent = 'Memvalidasi komposisi tim...';
+        statusIcon.textContent = '⏳';
+      }
+
+      // Debounce validation
+      validationTimeout = setTimeout(() => {
+        if (statusText && statusIcon) {
+          statusText.textContent = `Komposisi tim akan divalidasi saat submit. Pastikan ${memberIds.length} anggota memenuhi aturan di sidebar.`;
+          statusIcon.textContent = 'ℹ️';
+        }
+      }, 500);
+    });
+  }
+
+  getRuleOperatorLabel(operator) {
+    const labels = {
+      '>=': 'minimal',
+      '<=': 'maksimal',
+      '==': 'sama dengan',
+      '>': 'lebih dari',
+      '<': 'kurang dari'
+    };
+    return labels[operator] || operator;
   }
 }
 

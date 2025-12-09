@@ -11,7 +11,7 @@ export async function FeedbackPage() {
     try {
         const statusResponse = await getFeedbackStatus();
         feedbackStatus = statusResponse?.data || [];
-        
+
         const teamResponse = await getMyTeam();
         teamMembers = teamResponse?.data?.members || [];
     } catch (error) {
@@ -19,12 +19,20 @@ export async function FeedbackPage() {
         hasError = true;
     }
 
+    console.log("[DEBUG] User Session:", session?.user);
+    console.log("[DEBUG] Team Members Raw:", teamMembers);
+
+
+
     // Filter out current user from members list
-    const currentUserId = session?.user?.users_source_id;
-    const membersToReview = teamMembers.filter(m => m.users_source_id !== currentUserId);
+    const currentUserId = session?.user?.source_id || session?.user?.users_source_id;
+    const membersToReview = teamMembers.filter(m => {
+        const mId = m.source_id || m.users_source_id;
+        return mId && mId !== currentUserId;
+    });
 
     return `
-        <div class="container content-section">
+        < div class="container content-section" >
             <div class="section-header">
                 <h1 class="section-title">360-Degree Feedback</h1>
                 <p class="section-description">Penilaian antar anggota tim untuk evaluasi kontribusi</p>
@@ -61,11 +69,13 @@ export async function FeedbackPage() {
                     <div class="card">
                         <h2 class="card-title">Beri Penilaian</h2>
                         <div class="feedback-forms-grid">
-                            ${membersToReview.map(member => `
+                            ${membersToReview.map(member => {
+        // Use source_id (FUI...) preferred, fallback to users_source_id
+        const memberId = member.source_id || member.users_source_id;
+        return `
                                 <div class="feedback-form-card">
                                     <h3>${member.name || 'N/A'}</h3>
-                                    <p class="member-id-text">${member.users_source_id || 'N/A'}</p>
-                                    <form class="feedback-form" data-feedback-form data-reviewee-id="${member.users_source_id}">
+                                    <form class="feedback-form" data-feedback-form data-reviewee-id="${memberId}">
                                         <div class="form-row">
                                             <label>Anggota Aktif?</label>
                                             <div class="radio-group">
@@ -80,8 +90,8 @@ export async function FeedbackPage() {
                                             </div>
                                         </div>
                                         <div class="form-row">
-                                            <label for="contribution-${member.users_source_id}">Tingkat Kontribusi</label>
-                                            <select id="contribution-${member.users_source_id}" name="contribution_level" required>
+                                            <label for="contribution-${memberId}">Tingkat Kontribusi</label>
+                                            <select id="contribution-${memberId}" name="contribution_level" required>
                                                 <option value="" disabled selected>Pilih tingkat kontribusi</option>
                                                 <option value="sangat_signifikan">Sangat Signifikan</option>
                                                 <option value="signifikan">Signifikan</option>
@@ -90,15 +100,16 @@ export async function FeedbackPage() {
                                             </select>
                                         </div>
                                         <div class="form-row">
-                                            <label for="reason-${member.users_source_id}">Alasan</label>
-                                            <textarea id="reason-${member.users_source_id}" name="reason" rows="3" placeholder="Jelaskan alasan penilaian Anda" required></textarea>
+                                            <label for="reason-${memberId}">Alasan</label>
+                                            <textarea id="reason-${memberId}" name="reason" rows="3" placeholder="Jelaskan alasan penilaian Anda" required></textarea>
                                         </div>
                                         <div class="form-actions">
                                             <button type="submit" class="btn btn-primary btn-full">Kirim Penilaian</button>
                                         </div>
                                     </form>
                                 </div>
-                            `).join('')}
+                            `;
+    }).join('')}
                         </div>
                     </div>
                 ` : `
@@ -111,6 +122,6 @@ export async function FeedbackPage() {
                     </div>
                 `}
             </div>
-        </div>
-    `;
+        </div >
+        `;
 }

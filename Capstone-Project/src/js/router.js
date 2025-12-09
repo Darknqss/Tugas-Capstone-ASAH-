@@ -13,11 +13,11 @@ export class Router {
         if (!clean.startsWith('/')) {
             clean = '/' + clean;
         }
-        
+
         // Split path dan query string jika ada (preserve query string)
         const [pathname, search] = clean.split('?');
         const fullPath = pathname + (search ? '?' + search : '');
-        
+
         // Gunakan history API untuk path-based routing (BUKAN hash)
         window.history.pushState({}, '', fullPath);
         this.loadRoute();
@@ -38,38 +38,51 @@ export class Router {
             // Recurse untuk load route dengan pathname yang baru
             return this.loadRoute();
         }
-        
+
         // Pastikan tidak ada hash di URL - hapus jika masih ada (untuk safety)
         if (window.location.hash) {
             window.history.replaceState({}, '', window.location.pathname + window.location.search);
         }
-        
+
         // Gunakan pathname-based routing (BUKAN hash)
         let path = window.location.pathname;
-        
-        // Handle root path
-        if (path === '/' || path === '') {
-            // Check if user is admin and redirect accordingly
-            try {
-                const session = JSON.parse(localStorage.getItem('capstone-auth-session') || '{}');
-                path = session?.user?.role === 'admin' ? '/admin-dashboard' : '/dashboard';
-                // Redirect jika perlu
-                if (path !== window.location.pathname) {
-                    window.history.replaceState({}, '', path);
-                }
-            } catch {
-                path = '/dashboard';
+
+        // Handle root path and Role-Based Redirection
+        try {
+            const session = JSON.parse(localStorage.getItem('capstone-auth-session') || '{}');
+            const role = session?.user?.role;
+            const isAdmin = role?.toLowerCase() === 'admin';
+
+            // 1. Root path handling
+            if (path === '/' || path === '') {
+                path = isAdmin ? '/admin-dashboard' : '/dashboard';
                 if (path !== window.location.pathname) {
                     window.history.replaceState({}, '', path);
                 }
             }
+            // 2. Strict Role Redirection
+            else if (path !== '/login' && path !== '/register') {
+                if (isAdmin && (path === '/dashboard' || path === '/team-information' || path === '/dokumen-timeline' || path === '/individual-worksheet')) {
+                    // Admin trying to access Student pages -> Redirect to Admin Dashboard
+                    path = '/admin-dashboard';
+                    window.history.replaceState({}, '', path);
+                    return this.loadRoute();
+                } else if (!isAdmin && (path === '/admin-dashboard' || path.startsWith('/admin-'))) {
+                    // Student trying to access Admin pages -> Redirect to Student Dashboard
+                    path = '/dashboard';
+                    window.history.replaceState({}, '', path);
+                }
+            }
+        } catch (e) {
+            console.warn("Router session check failed:", e);
+            if (path === '/' || path === '') path = '/dashboard';
         }
-        
+
         // Normalisasi path
         if (!path.startsWith('/')) {
             path = '/' + path;
         }
-        
+
         const component = this.routes[path] || this.routes['/dashboard'] || this.routes['/admin-dashboard'];
         if (component) {
             // Pastikan URL tidak memiliki hash sebelum render
@@ -90,9 +103,9 @@ export class Router {
             console.error('App element not found');
             return;
         }
-        
+
         app.innerHTML = '<div style="text-align:center;padding:40px;">Memuat...</div>';
-        
+
         try {
             const result = component();
             // Check if component returns a Promise
@@ -105,7 +118,7 @@ export class Router {
             console.error('Error rendering component:', error);
             app.innerHTML = '<div style="text-align:center;padding:40px;color:red;">Error loading page</div>';
         }
-        
+
         app.classList.add('fade-in');
         
         try {
@@ -133,5 +146,5 @@ export class Router {
         }, 50);
     }
 }
-// test 
+// test
 // test 
