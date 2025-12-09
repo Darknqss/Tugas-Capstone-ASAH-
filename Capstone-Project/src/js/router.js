@@ -108,6 +108,20 @@ export class Router {
         
         app.classList.add('fade-in');
         
+        try {
+            const result = component();
+            // Check if component returns a Promise
+            if (result && typeof result.then === 'function') {
+                const html = await result;
+                app.innerHTML = html;
+            } else {
+                app.innerHTML = result;
+            }
+        } catch (error) {
+            console.error('Error rendering component:', error);
+            app.innerHTML = '<div style="text-align: center; padding: 50px; color: red;">Error loading page</div>';
+        }
+        
         // Remove animation class after animation completes
         setTimeout(() => {
             app.classList.remove('fade-in');

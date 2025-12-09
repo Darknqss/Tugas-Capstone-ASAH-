@@ -97,6 +97,15 @@ class App {
     this.router.addRoute("/dokumen-timeline", DocumentsPage);
     this.router.addRoute("/individual-worksheet", WorksheetPage);
     this.router.addRoute("/360-feedback", FeedbackPage);
+    
+    // Admin routes
+    this.router.addRoute("/admin/dashboard", AdminDashboardPage);
+    this.router.addRoute("/admin/team-information", AdminTeamInfoPage);
+    this.router.addRoute("/admin/dokumen-timeline", AdminDocumentsPage);
+    this.router.addRoute("/admin/individual-worksheet", AdminWorksheetPage);
+    this.router.addRoute("/admin/360-feedback", AdminFeedbackPage);
+    
+    // Auth routes
     this.router.addRoute("/login", LoginPage);
     this.router.addRoute("/register", RegisterPage);
     
@@ -225,6 +234,27 @@ class App {
       } catch (error) {
         console.error("Error handling form submission:", error);
       }
+
+      // Admin forms
+      if (form.matches("[data-create-group-form]")) {
+        event.preventDefault();
+        this.handleCreateGroup(form);
+      }
+
+      if (form.matches("[data-edit-group-form]")) {
+        event.preventDefault();
+        this.handleEditGroup(form);
+      }
+
+      if (form.matches("[data-rules-form]")) {
+        event.preventDefault();
+        this.handleSetRules(form);
+      }
+
+      if (form.matches("[data-validation-form]")) {
+        event.preventDefault();
+        this.handleValidateGroup(form);
+      }
     });
 
     document.addEventListener("click", async (event) => {
@@ -246,6 +276,7 @@ class App {
           this.router.navigate("team-information");
         }
       }
+
 
       // Admin action handlers
       const adminAction = event.target.closest("[data-admin-action]");
@@ -329,6 +360,248 @@ class App {
         this.handleFilterGroups(event.target.value);
       }
     });
+  }
+
+  setupAdminHandlers() {
+    // Setup admin-specific handlers after route renders
+  }
+
+  updateNavigationByRole() {
+    const session = readSession();
+    const userRole = session?.user?.role || "student";
+    const studentNav = document.querySelector("[data-student-nav]");
+    const adminNav = document.querySelector("[data-admin-nav]");
+
+    if (userRole === "admin") {
+      if (studentNav) studentNav.hidden = true;
+      if (adminNav) adminNav.hidden = false;
+    } else {
+      if (studentNav) studentNav.hidden = false;
+      if (adminNav) adminNav.hidden = true;
+    }
+  }
+
+  async handleCreateGroup(form) {
+    this.resetFormState(form);
+    const formData = new FormData(form);
+    const payload = {
+      group_name: formData.get("group_name")?.trim(),
+      batch_id: formData.get("batch_id")?.trim(),
+    };
+
+    try {
+      this.toggleSubmitLoading(form, true);
+      await createAdminGroup(payload);
+      this.showToast("Grup berhasil dibuat ✅");
+      form.reset();
+      const panel = document.querySelector("[data-create-group-panel]");
+      if (panel) panel.hidden = true;
+      this.router.loadRoute();
+    } catch (error) {
+      this.applyApiErrors(form, error);
+    } finally {
+      this.toggleSubmitLoading(form, false);
+    }
+  }
+
+  async handleEditGroup(form) {
+    this.resetFormState(form);
+    const formData = new FormData(form);
+    const groupId = formData.get("group_id");
+    const payload = {
+      group_name: formData.get("group_name")?.trim(),
+      batch_id: formData.get("batch_id")?.trim(),
+      status: formData.get("status"),
+    };
+
+    try {
+      this.toggleSubmitLoading(form, true);
+      await updateAdminGroup(groupId, payload);
+      this.showToast("Grup berhasil diperbarui ✅");
+      form.reset();
+      const panel = document.querySelector("[data-edit-group-panel]");
+      if (panel) panel.hidden = true;
+      this.router.loadRoute();
+    } catch (error) {
+      this.applyApiErrors(form, error);
+    } finally {
+      this.toggleSubmitLoading(form, false);
+    }
+  }
+
+  async handleSetRules(form) {
+    this.resetFormState(form);
+    const formData = new FormData(form);
+    const batchId = formData.get("batch_id")?.trim();
+
+    const rules = [];
+    const ruleItems = form.querySelectorAll(".rule-item");
+    ruleItems.forEach((item) => {
+      const userAttribute = item.querySelector('[name="user_attribute"]')?.value;
+      const attributeValue = item.querySelector('[name="attribute_value"]')?.value;
+      const operator = item.querySelector('[name="operator"]')?.value;
+      const value = item.querySelector('[name="value"]')?.value;
+
+      if (userAttribute && attributeValue && operator && value) {
+        rules.push({
+          user_attribute: userAttribute,
+          attribute_value: attributeValue,
+          operator: operator,
+          value: value,
+        });
+      }
+    });
+
+    const payload = {
+      batch_id: batchId,
+      rules: rules,
+    };
+
+    try {
+      this.toggleSubmitLoading(form, true);
+      await setGroupRules(payload);
+      this.showToast("Aturan komposisi tim berhasil disimpan ✅");
+      form.reset();
+      const panel = document.querySelector("[data-rules-panel]");
+      if (panel) panel.hidden = true;
+    } catch (error) {
+      this.applyApiErrors(form, error);
+    } finally {
+      this.toggleSubmitLoading(form, false);
+    }
+  }
+
+  async handleValidateGroup(form) {
+    this.resetFormState(form);
+    const formData = new FormData(form);
+    const groupId = formData.get("group_id");
+    const action = formData.get("action");
+    const rejectionReason = formData.get("rejection_reason")?.trim();
+
+    const payload = {
+      status: action === "accept" ? "accepted" : "rejected",
+    };
+
+    if (action === "reject" && rejectionReason) {
+      payload.rejection_reason = rejectionReason;
+    }
+
+    try {
+      this.toggleSubmitLoading(form, true);
+      await validateGroupRegistration(groupId, payload);
+      this.showToast(`Tim ${action === "accept" ? "diterima" : "ditolak"} ✅`);
+      const modal = document.querySelector("[data-validation-modal]");
+      if (modal) modal.hidden = true;
+      this.router.loadRoute();
+    } catch (error) {
+      this.applyApiErrors(form, error);
+    } finally {
+      this.toggleSubmitLoading(form, false);
+    }
+  }
+
+  async handleStartProject(groupId) {
+    try {
+      await updateProjectStatus(groupId);
+      this.showToast("Proyek berhasil dimulai ✅");
+      this.router.loadRoute();
+    } catch (error) {
+      this.showToast("Gagal memulai proyek. Coba lagi.");
+    }
+  }
+
+  openValidationModal(groupId, action) {
+    const modal = document.querySelector("[data-validation-modal]");
+    const form = modal?.querySelector("[data-validation-form]");
+    const title = modal?.querySelector("[data-modal-title]");
+    const reasonRow = modal?.querySelector("[data-rejection-reason-row]");
+
+    if (!modal || !form) return;
+
+    form.querySelector('[name="group_id"]').value = groupId;
+    form.querySelector('[name="action"]').value = action;
+
+    if (title) {
+      title.textContent = action === "accept" ? "Terima Tim" : "Tolak Tim";
+    }
+
+    if (reasonRow) {
+      reasonRow.hidden = action !== "reject";
+    }
+
+    modal.hidden = false;
+  }
+
+  async openEditGroupModal(groupId) {
+    try {
+      const response = await getAdminGroups();
+      const groups = response?.data || [];
+      const group = groups.find((g) => g.group_id === groupId);
+
+      if (!group) {
+        this.showToast("Grup tidak ditemukan");
+        return;
+      }
+
+      const panel = document.querySelector("[data-edit-group-panel]");
+      const form = panel?.querySelector("[data-edit-group-form]");
+
+      if (!panel || !form) return;
+
+      form.querySelector('[name="group_id"]').value = group.group_id || "";
+      form.querySelector('[name="group_name"]').value = group.group_name || "";
+      form.querySelector('[name="batch_id"]').value = group.batch_id || "";
+      form.querySelector('[name="status"]').value = group.status || "pending";
+
+      panel.hidden = false;
+    } catch (error) {
+      this.showToast("Gagal memuat data grup");
+    }
+  }
+
+  addRuleField() {
+    const rulesList = document.getElementById("rules-list");
+    if (!rulesList) return;
+
+    const newRule = document.createElement("div");
+    newRule.className = "rule-item";
+    newRule.innerHTML = `
+      <div class="form-row">
+        <label>Atribut Pengguna</label>
+        <select name="user_attribute" required>
+          <option value="learning_path">Learning Path</option>
+          <option value="progress">Progress</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Nilai Atribut</label>
+        <input type="text" name="attribute_value" placeholder="Contoh: Machine Learning" required />
+      </div>
+      <div class="form-row">
+        <label>Operator</label>
+        <select name="operator" required>
+          <option value=">=">>=</option>
+          <option value="<="><=</option>
+          <option value="==">==</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Nilai</label>
+        <input type="text" name="value" placeholder="Contoh: 2" required />
+      </div>
+      <button type="button" class="btn btn-danger btn-small" onclick="this.closest('.rule-item').remove()">
+        Hapus
+      </button>
+    `;
+    rulesList.appendChild(newRule);
+  }
+
+  handleExportTeams() {
+    this.showToast("Fitur ekspor data tim akan segera tersedia");
+  }
+
+  handleRandomizeTeams() {
+    this.showToast("Fitur randomize tim akan segera tersedia");
   }
 
   setupProfilePanel() {
