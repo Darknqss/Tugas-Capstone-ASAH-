@@ -112,3 +112,13 @@ export async function exportFeedbackData() {
   return handleResponse(response);
 }
 
+// Admin User Management
+export async function updateUserLearningPath(userId, payload) {
+  const response = await fetch(`${API_BASE_URL}/admin/users/${userId}/learning-path`, {
+    method: "PUT",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(payload),
+  });
+  return handleResponse(response);
+}
+

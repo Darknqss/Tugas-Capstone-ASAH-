@@ -1,86 +1,265 @@
-/* Profile Panel & Avatar Picker */
+/* Profile Panel Styles */
 .profile-panel-backdrop {
   position: fixed;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.25);
-  z-index: 1100;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: none;
+  z-index: 1000;
+}
+
+.profile-panel-backdrop:not([hidden]) {
+  display: block;
 }
 
 .profile-panel {
   position: fixed;
-  top: 90px;
-  right: 40px;
-  width: 320px;
-  background-color: var(--white);
-  border-radius: 16px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
-  padding: 24px;
-  z-index: 1200;
+  top: 0;
+  right: 0;
+  width: 400px;
+  max-width: 100%;
+  height: 100%;
+  background: #ffffff;
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+  transform: translateX(100%);
+  transition: transform 0.3s ease-in-out;
+  z-index: 1001;
+  overflow-y: auto;
+}
+
+.profile-panel:not([hidden]) {
+  transform: translateX(0);
 }
 
 .profile-panel__header {
   display: flex;
-  align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 18px;
+  align-items: flex-start;
+  margin-bottom: 2rem;
 }
 
 .profile-panel__subheading {
-  font-size: 12px;
+  font-size: 0.875rem;
+  color: var(--text-light);
   text-transform: uppercase;
-  letter-spacing: 1px;
-  color: #6c757d;
-  margin-bottom: 6px;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
 }
 
-.profile-panel__header h3 {
-  font-size: 20px;
+.profile-panel h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-dark);
 }
 
 .profile-panel__close {
+  background: none;
   border: none;
-  background: transparent;
-  font-size: 20px;
+  font-size: 2rem;
+  line-height: 1;
+  color: var(--text-light);
   cursor: pointer;
-  color: #6c757d;
 }
 
-.profile-form .form-group {
-  margin-bottom: 16px;
+.profile-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
 .avatar-options {
-  display: flex;
-  gap: 12px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
 }
 
 .avatar-card {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  border: 2px solid #e0e4e8;
+  justify-content: center;
+  padding: 1.5rem;
+  border: 2px solid var(--border-color);
   border-radius: 12px;
-  padding: 14px;
-  width: 100%;
   cursor: pointer;
-  transition: border-color 0.2s, transform 0.2s;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.avatar-card:hover {
+  border-color: var(--primary-color);
+  background: var(--bg-light);
 }
 
 .avatar-card input {
-  display: none;
-}
-
-.avatar-card .avatar-emoji {
-  font-size: 32px;
+  position: absolute;
+  opacity: 0;
 }
 
 .avatar-card.is-selected {
-  border-color: var(--secondary-color);
-  background-color: rgba(0, 74, 122, 0.08);
-  transform: translateY(-2px);
+  border-color: var(--primary-color);
+  background: rgba(37, 99, 235, 0.05);
 }
 
+.avatar-emoji {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+}
 
+.profile-logout {
+  color: var(--danger-color);
+  border-color: var(--danger-color);
+}
 
+.profile-logout:hover {
+  background: var(--danger-color);
+  color: white;
+}
 
+/* 2-Column Grid Layout for Larger Screens */
+@media (min-width: 768px) {
+  .profile-panel {
+    width: 700px;
+    /* Wider panel */
+  }
+
+  .profile-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+  }
+
+  .profile-column {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    background: #fff;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .profile-section-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #fff;
+    background: linear-gradient(135deg, #004a7a 0%, #0066a8 100%);
+    padding: 1rem 1.5rem;
+    margin-bottom: 0;
+    border-bottom: none;
+  }
+
+  .profile-column .form-group {
+    padding: 0 1.5rem 1.5rem 1.5rem;
+  }
+
+  /* Add top padding to first form-group */
+  .profile-column .form-group:first-of-type {
+    padding-top: 1.5rem;
+  }
+
+  .profile-actions {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    gap: 1rem;
+  }
+
+  .profile-actions .btn {
+    flex: 1;
+  }
+}
+
+.warning-text {
+  color: #b91c1c;
+  /* darkly red */
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  padding: 0.5rem;
+  border-radius: 6px;
+  margin-top: 0.5rem;
+}
+
+/* =========================================
+   Admin Theme for Profile Panel
+   ========================================= */
+.profile-panel.admin-theme .profile-section-title {
+  background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+  /* Dark Slate */
+  border-bottom: 2px solid #ecc94b;
+  /* Gold Accent */
+  color: #f7fafc;
+}
+
+.profile-panel.admin-theme h3 {
+  color: #1a202c;
+}
+
+.profile-panel.admin-theme .avatar-card.is-selected {
+  border-color: #ecc94b;
+  background: rgba(236, 201, 75, 0.1);
+}
+
+.profile-panel.admin-theme .btn-primary {
+  background-color: #1a202c;
+  border-color: #1a202c;
+}
+
+.profile-panel.admin-theme .btn-primary:hover {
+  background-color: #2d3748;
+}
+
+.profile-panel.admin-theme .profile-panel__header {
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 1rem;
+}
+
+.profile-panel.admin-theme .form-hint.warning-text {
+  background-color: #fffaf0;
+  border-color: #fbd38d;
+  color: #744210;
+}
+
+/* =========================================
+   Admin Theme for Profile Panel
+   ========================================= */
+.profile-panel.admin-theme .profile-section-title {
+  background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+  /* Dark Slate */
+  border-bottom: 2px solid #ecc94b;
+  /* Gold Accent */
+  color: #f7fafc;
+}
+
+.profile-panel.admin-theme h3 {
+  color: #1a202c;
+}
+
+.profile-panel.admin-theme .avatar-card.is-selected {
+  border-color: #ecc94b;
+  background: rgba(236, 201, 75, 0.1);
+}
+
+.profile-panel.admin-theme .btn-primary {
+  background-color: #1a202c;
+  border-color: #1a202c;
+}
+
+.profile-panel.admin-theme .btn-primary:hover {
+  background-color: #2d3748;
+}
+
+.profile-panel.admin-theme .profile-panel__header {
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 1rem;
+}
+
+.profile-panel.admin-theme .form-hint.warning-text {
+  background-color: #fffaf0;
+  border-color: #fbd38d;
+  color: #744210;
+}

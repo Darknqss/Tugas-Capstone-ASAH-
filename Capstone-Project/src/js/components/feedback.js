@@ -11,7 +11,7 @@ export async function FeedbackPage() {
     try {
         const statusResponse = await getFeedbackStatus();
         feedbackStatus = statusResponse?.data || [];
-        
+
         const teamResponse = await getMyTeam();
         teamMembers = teamResponse?.data?.members || [];
     } catch (error) {
@@ -24,7 +24,7 @@ export async function FeedbackPage() {
     const membersToReview = teamMembers.filter(m => m.users_source_id !== currentUserId);
 
     return `
-        <div class="container content-section">
+        < div class="container content-section" >
             <div class="section-header">
                 <h1 class="section-title">360-Degree Feedback</h1>
                 <p class="section-description">Penilaian antar anggota tim untuk evaluasi kontribusi</p>
@@ -111,6 +111,6 @@ export async function FeedbackPage() {
                     </div>
                 `}
             </div>
-        </div>
-    `;
+        </div >
+        `;
 }
