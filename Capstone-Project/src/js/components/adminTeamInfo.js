@@ -70,12 +70,11 @@ export async function AdminTeamInfoPage() {
               </tr>
             </thead>
             <tbody data-groups-list>
-              ${
-                groupsData.length === 0
-                  ? `<tr><td colspan="6" class="text-center">Belum ada tim terdaftar</td></tr>`
-                  : groupsData
-                      .map(
-                        (group) => `
+              ${groupsData.length === 0
+      ? `<tr><td colspan="6" class="text-center">Belum ada tim terdaftar</td></tr>`
+      : groupsData
+        .map(
+          (group) => `
                   <tr data-group-id="${group.group_id}">
                     <td><strong>${group.group_name || "-"}</strong></td>
                     <td>${group.batch_id || "-"}</td>
@@ -88,9 +87,9 @@ export async function AdminTeamInfoPage() {
                     </td>
                   </tr>
                 `
-                      )
-                      .join("")
-              }
+        )
+        .join("")
+    }
             </tbody>
           </table>
         </div>
@@ -195,6 +194,31 @@ export async function AdminTeamInfoPage() {
           </div>
         </form>
       </div>
+
+      <!-- Edit User Learning Path Modal (Override) -->
+      <div class="modal" data-modal="edit-member" hidden>
+        <div class="modal-header">
+          <h3>Edit Learning Path Member</h3>
+          <button class="modal-close" data-close-modal>×</button>
+        </div>
+        <form class="modal-form" data-form="edit-member">
+          <input type="hidden" name="user_id" data-user-id-input />
+          <div class="form-group">
+            <p class="text-muted" style="margin-bottom: 10px;">Mengubah Learning Path secara paksa (Admin Override).</p>
+            <label>Learning Path Baru</label>
+            <select name="learning_path" required>
+               <option value="">Pilih Learning Path</option>
+               <option value="Machine Learning (ML)">Machine Learning (ML)</option>
+               <option value="Front-End Web & Back-End with AI (FEBE)">Front-End Web & Back-End with AI (FEBE)</option>
+               <option value="React & Back-End with AI (REBE)">React & Back-End with AI (REBE)</option>
+            </select>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn btn-outline" data-close-modal>Batal</button>
+            <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
+          </div>
+        </form>
+      </div>
     </div>
   `;
 }
@@ -227,11 +251,10 @@ function renderGroupDetail(group) {
       <div class="detail-section">
         <h3>Anggota Tim</h3>
         <div class="members-list">
-          ${
-            group.members && group.members.length > 0
-              ? group.members
-                  .map(
-                    (member) => `
+          ${group.members && group.members.length > 0
+      ? group.members
+        .map(
+          (member) => `
               <div class="member-card">
                 <div class="member-info">
                   <strong>${member.full_name || member.email || "Unknown"}</strong>
@@ -242,10 +265,10 @@ function renderGroupDetail(group) {
                 </div>
               </div>
             `
-                  )
-                  .join("")
-              : "<p class='text-muted'>Belum ada anggota</p>"
-          }
+        )
+        .join("")
+      : "<p class='text-muted'>Belum ada anggota</p>"
+    }
         </div>
         <div class="detail-actions" style="margin-top: 16px;">
           <button class="btn btn-outline btn-small" data-upload-members="${group.group_id}">Upload Anggota</button>

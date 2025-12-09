@@ -11,19 +11,37 @@ export async function TeamInfoPage() {
     let useCasesOptions = "";
     let teamData = null;
 
+    // Fetch Use Cases - Independent error handling
     try {
-        const docsResponse = await getDocs();
         const useCasesResponse = await getUseCases();
-        const teamResponse = await getMyTeam();
-        
-        const docs = docsResponse?.data || [];
+        console.log("Use Cases Response:", useCasesResponse); // Debug log
         const useCases = useCasesResponse?.data || [];
-        teamData = teamResponse?.data || null;
+        console.log("Use Cases Data:", useCases); // Debug log
         
         // Build use case options
-        useCasesOptions = useCases.map(uc => 
-            `<option value="${uc.id}">${uc.name} - ${uc.company || ''}</option>`
-        ).join('');
+        // Menggunakan capstone_use_case_source_id sebagai value sesuai API contract
+        if (useCases && useCases.length > 0) {
+            useCasesOptions = useCases.map(uc => {
+                // Gunakan capstone_use_case_source_id sebagai value (sesuai API contract)
+                const sourceId = uc.capstone_use_case_source_id || uc.id || '';
+                // Format display: "Nama Use Case - Company (Source ID)"
+                const displayName = `${uc.name || 'N/A'}${uc.company ? ` - ${uc.company}` : ''}${sourceId ? ` (${sourceId})` : ''}`;
+                return `<option value="${sourceId}">${displayName}</option>`;
+            }).join('');
+            console.log("Use Cases Options Generated:", useCasesOptions.length, "characters"); // Debug log
+        } else {
+            console.warn("No use cases found in response");
+            useCasesOptions = '<option value="" disabled>Belum ada use case tersedia</option>';
+        }
+    } catch (error) {
+        console.error("Error fetching use cases:", error);
+        useCasesOptions = '<option value="" disabled>Gagal memuat use case. Silakan refresh halaman.</option>';
+    }
+
+    // Fetch Docs - Independent error handling
+    try {
+        const docsResponse = await getDocs();
+        const docs = docsResponse?.data || [];
         
         // Find Capstone Playbook (capstone_docs_source_id: "1" or title contains "playbook")
         const playbook = docs.find(doc => 
@@ -44,8 +62,18 @@ export async function TeamInfoPage() {
             useCaseUrl = useCase.url;
         }
     } catch (error) {
-        console.error("Error fetching data:", error);
+        console.error("Error fetching docs:", error);
         // Use default URLs if API fails
+    }
+
+    // Fetch Team Data - Independent error handling (bisa gagal jika user belum punya tim)
+    try {
+        const teamResponse = await getMyTeam();
+        teamData = teamResponse?.data || null;
+    } catch (error) {
+        // Error ini normal jika user belum bergabung dengan tim
+        // Tidak perlu log error karena ini expected behavior
+        teamData = null;
     }
     
     // Render team members
