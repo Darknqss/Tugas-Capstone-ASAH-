@@ -9,14 +9,13 @@ import {
 export async function AdminTeamInfoPage() {
   const session = readSession();
 
-  // Get groupId from URL params (menggunakan pathname + search, bukan hash)
+  // Get groupId from URL params
   const urlParams = new URLSearchParams(window.location.search);
   const selectedGroupId = urlParams.get("groupId");
 
   // Fetch groups data
   let groupsData = [];
   let selectedGroup = null;
-  let rulesData = [];
 
   try {
     const response = await listAllGroups();
@@ -28,82 +27,108 @@ export async function AdminTeamInfoPage() {
     console.error("Error fetching groups:", error);
   }
 
+  console.log("Rendering AdminTeamInfoPage");
   return `
-    <div class="container content-section">
-      <div class="section-header">
-        <h1 class="section-title">Team Information - Admin</h1>
-        <p class="section-description">Kelola registrasi tim, validasi komposisi, dan atur periode pendaftaran</p>
-      </div>
+    <div class="admin-subpage-wrapper">
+      
+      <div class="container main-content-wrapper" style="margin-top: 30px;">
+        <h2 class="mb-4 text-dark fw-bold">Manajemen Tim</h2>
 
-      <!-- Action Buttons -->
-      <div class="admin-actions-bar">
-        <button class="btn btn-primary" data-admin-action="create-group">Buat Tim Baru</button>
-        <button class="btn btn-outline" data-admin-action="set-rules">Atur Komposisi Tim</button>
-        <button class="btn btn-outline" data-admin-action="export-data">Ekspor Data Tim</button>
-        <button class="btn btn-outline" data-admin-action="randomize">Randomize Peserta</button>
-      </div>
+        
+        <!-- Main Toolbar (4 Buttons) -->
+        <div class="admin-toolbar-card" style="justify-content: flex-start; gap: 12px;">
+           <button class="btn-primary" data-admin-action="create-group">
+             Buat Tim Baru
+           </button>
+           <button class="btn-secondary-icon" data-admin-action="set-rules">
+             Atur Komposisi Tim
+           </button>
+           <button class="btn-secondary-icon" data-admin-action="export-data">
+             Ekspor Data Tim
+           </button>
+           <button class="btn-secondary-icon" data-admin-action="randomize-teams">
+             Randomize Peserta
+           </button>
+        </div>
 
-      <!-- Groups List -->
-      <div class="card" style="margin-top: 24px;">
-        <div class="card-header">
-          <h2 class="card-title">Daftar Tim</h2>
-          <div class="card-header-actions">
-            <input type="text" class="search-input" placeholder="Cari tim..." data-search-groups />
-            <select class="filter-select" data-filter-status>
-              <option value="">Semua Status</option>
-              <option value="pending">Pending</option>
-              <option value="accepted">Accepted</option>
-              <option value="rejected">Rejected</option>
-            </select>
+        <!-- Filter & Search Bar (Secondary Toolbar) -->
+        <div class="admin-toolbar-card" style="margin-top: -10px;">
+           <div class="toolbar-left" style="flex: 1;">
+              <h3 style="margin: 0; font-size: 18px; font-weight: 700;">Daftar Tim</h3>
+           </div>
+           <div class="toolbar-right">
+              <div class="search-box">
+                <input type="text" class="search-input-clean" placeholder="Cari tim..." data-search-groups />
+              </div>
+              <select class="filter-select-clean" data-filter-status>
+                <option value="">Semua Status</option>
+                <option value="pending">PENDING_VALIDATION</option>
+                <option value="accepted">ACCEPTED</option>
+                <option value="rejected">REJECTED</option>
+                <option value="draft">DRAFT</option>
+              </select>
+           </div>
+        </div>
+
+        <!-- Full Width Groups Table -->
+        <div class="card list-card">
+          <div class="table-responsive">
+            <table class="modern-table">
+              <thead>
+                <tr>
+                  <th>Nama Tim</th>
+                  <th>Batch ID</th>
+                  <th>Status</th>
+                  <th>Anggota</th>
+                  <th>Proyek</th>
+                  <th>Aksi</th>
+                </tr>
+              </thead>
+              <tbody data-groups-list>
+                ${groupsData.length === 0
+      ? `<tr><td colspan="6" class="empty-cell" style="text-align:center; padding: 40px;">Belum ada tim terdaftar</td></tr>`
+      : groupsData.map((group) => `
+                      <tr data-view-group="${group.group_id}">
+                        <td>
+                           <div class="fw-bold text-dark">${group.group_name || "-"}</div>
+                        </td>
+                        <td>${group.batch_id || "-"}</td>
+                        <td>
+                          <span class="status-indicator status-${(group.status || 'pending').toLowerCase()}">
+                            ${(group.status || 'PENDING').toUpperCase().replace('_', ' ')}
+                          </span>
+                        </td>
+                        <td>${group.members?.length || 0} anggota</td>
+                        <td>
+                           <span class="badge-pill">${(group.project_status || "NOT STARTED").replace("_", " ")}</span>
+                        </td>
+                        <td>
+                          <div style="display: flex; gap: 8px;">
+                            <button class="btn-link" data-view-group="${group.group_id}" style="font-weight:600; font-size:13px;">Detail</button>
+                            <button class="btn-link" data-open-edit-group="${group.group_id}" style="font-weight:600; font-size:13px; color: #666;">Edit</button>
+                          </div>
+                        </td>
+                      </tr>
+                    `).join("")
+    }
+              </tbody>
+            </table>
           </div>
         </div>
-        <div class="table-container">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Nama Tim</th>
-                <th>Batch ID</th>
-                <th>Status</th>
-                <th>Anggota</th>
-                <th>Proyek</th>
-                <th>Aksi</th>
-              </tr>
-            </thead>
-            <tbody data-groups-list>
-              ${groupsData.length === 0
-      ? `<tr><td colspan="6" class="text-center">Belum ada tim terdaftar</td></tr>`
-      : groupsData
-        .map(
-          (group) => `
-                  <tr data-group-id="${group.group_id}">
-                    <td><strong>${group.group_name || "-"}</strong></td>
-                    <td>${group.batch_id || "-"}</td>
-                    <td><span class="status-badge status-badge--${group.status || "pending"}">${(group.status || "pending").toUpperCase()}</span></td>
-                    <td>${group.members?.length || 0} anggota</td>
-                    <td><span class="status-badge status-badge--${group.project_status || "not_started"}">${(group.project_status || "not_started").replace("_", " ").toUpperCase()}</span></td>
-                    <td>
-                      <button class="btn-link" data-view-group="${group.group_id}">Detail</button>
-                      <button class="btn-link" data-edit-group="${group.group_id}">Edit</button>
-                    </td>
-                  </tr>
-                `
-        )
-        .join("")
-    }
-            </tbody>
-          </table>
-        </div>
+
       </div>
 
-      <!-- Group Detail Panel -->
-      <div class="card admin-detail-panel" data-group-detail-panel ${selectedGroup ? '' : 'hidden'} style="margin-top: 24px;">
-        <div class="card-header">
-          <h2 class="card-title">Detail Tim</h2>
-          <button class="btn-link" data-close-detail>✕ Tutup</button>
-        </div>
-        <div data-group-detail-content>
-          ${selectedGroup ? renderGroupDetail(selectedGroup) : '<p class="text-muted">Pilih tim untuk melihat detail</p>'}
-        </div>
+      <!-- Modals -->
+      
+      <!-- Detail Group Modal (New) -->
+      <div class="modal" data-modal="group-detail" hidden>
+         <div class="modal-header">
+            <h3>Detail Tim</h3>
+            <button class="modal-close" data-close-modal>×</button>
+         </div>
+         <div class="modal-body" data-group-detail-content style="padding: 0;">
+            <!-- Content injected here via renderGroupDetail -->
+         </div>
       </div>
 
       <!-- Create/Edit Group Modal -->
@@ -129,6 +154,36 @@ export async function AdminTeamInfoPage() {
         </form>
       </div>
 
+       <!-- Edit Panel -->
+       <div class="modal" data-edit-group-panel hidden>
+          <div class="modal-header">
+            <h3>Edit Tim</h3>
+            <button class="modal-close" onclick="this.closest('.modal').hidden = true">×</button>
+          </div>
+          <form class="modal-form" data-edit-group-form>
+             <input type="hidden" name="group_id" />
+             <div class="form-group">
+                <label>Nama Tim</label>
+                <input type="text" name="group_name" required />
+             </div>
+             <div class="form-group">
+                <label>Batch ID</label>
+                <input type="text" name="batch_id" required />
+             </div>
+             <div class="form-group">
+                <label>Status</label>
+                 <select name="status">
+                    <option value="pending">Pending</option>
+                    <option value="accepted">Accepted</option>
+                    <option value="rejected">Rejected</option>
+                 </select>
+             </div>
+             <div class="form-actions">
+              <button type="submit" class="btn btn-primary">Simpan</button>
+             </div>
+          </form>
+       </div>
+
       <!-- Set Rules Modal -->
       <div class="modal" data-modal="set-rules" hidden>
         <div class="modal-header">
@@ -141,26 +196,11 @@ export async function AdminTeamInfoPage() {
             <input type="text" name="batch_id" required placeholder="Contoh: batch-2024" />
           </div>
           <div class="form-group">
-            <label>Learning Path</label>
-            <select name="learning_path" required>
-              <option value="">Pilih Learning Path</option>
-              <option value="Machine Learning">Machine Learning</option>
-              <option value="Cloud Computing">Cloud Computing</option>
-              <option value="Front-End">Front-End</option>
-              <option value="Back-End">Back-End</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Operator</label>
-            <select name="operator" required>
-              <option value=">=">>=</option>
-              <option value="<="><=</option>
-              <option value="==">==</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Nilai Minimum</label>
-            <input type="number" name="value" required placeholder="Contoh: 2" min="1" />
+            <p class="text-sm text-muted">Tambahkan aturan minimal untuk setiap tim.</p>
+            <div id="rules-list">
+              <!-- Rules added dynamically -->
+            </div>
+            <button type="button" class="btn btn-secondary btn-small" data-add-rule>+ Tambah Aturan</button>
           </div>
           <div class="form-actions">
             <button type="button" class="btn btn-outline" data-close-modal>Batal</button>
@@ -172,118 +212,127 @@ export async function AdminTeamInfoPage() {
       <!-- Validate Group Modal -->
       <div class="modal" data-modal="validate-group" hidden>
         <div class="modal-header">
-          <h3>Validasi Tim</h3>
+          <h3 data-modal-title>Validasi Tim</h3>
           <button class="modal-close" data-close-modal>×</button>
         </div>
-        <form class="modal-form" data-form="validate-group">
+        <form class="modal-form" data-form="validate-group" data-validation-form>
           <input type="hidden" name="group_id" data-group-id-input />
-          <div class="form-group">
-            <label>Status</label>
-            <select name="status" required data-validate-status>
-              <option value="accepted">Diterima</option>
-              <option value="rejected">Ditolak</option>
-            </select>
-          </div>
-          <div class="form-group" data-rejection-reason-group hidden>
+          <input type="hidden" name="action" /> 
+          <p class="confirmation-text">Apakah Anda yakin ingin melakukan tindakan ini?</p>
+          <div class="form-group" data-rejection-reason-row hidden>
             <label>Alasan Penolakan</label>
-            <textarea name="rejection_reason" rows="4" placeholder="Masukkan alasan penolakan..."></textarea>
+            <textarea name="rejection_reason" rows="3" placeholder="Masukkan alasan penolakan..."></textarea>
           </div>
           <div class="form-actions">
             <button type="button" class="btn btn-outline" data-close-modal>Batal</button>
-            <button type="submit" class="btn btn-primary">Validasi</button>
+            <button type="submit" class="btn btn-primary">Konfirmasi</button>
           </div>
         </form>
       </div>
 
-      <!-- Edit User Learning Path Modal (Override) -->
+      <!-- Edit User Modal -->
       <div class="modal" data-modal="edit-member" hidden>
-        <div class="modal-header">
-          <h3>Edit Learning Path Member</h3>
-          <button class="modal-close" data-close-modal>×</button>
-        </div>
-        <form class="modal-form" data-form="edit-member">
-          <input type="hidden" name="user_id" data-user-id-input />
-          <div class="form-group">
-            <p class="text-muted" style="margin-bottom: 10px;">Mengubah Learning Path secara paksa (Admin Override).</p>
-            <label>Learning Path Baru</label>
-            <select name="learning_path" required>
-               <option value="">Pilih Learning Path</option>
-               <option value="Machine Learning (ML)">Machine Learning (ML)</option>
-               <option value="Front-End Web & Back-End with AI (FEBE)">Front-End Web & Back-End with AI (FEBE)</option>
-               <option value="React & Back-End with AI (REBE)">React & Back-End with AI (REBE)</option>
-            </select>
-          </div>
-          <div class="form-actions">
-            <button type="button" class="btn btn-outline" data-close-modal>Batal</button>
-            <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
-          </div>
-        </form>
+         <div class="modal-header">
+          <h3>Edit Member</h3>
+           <button class="modal-close" data-close-modal>×</button>
+         </div>
+         <form class="modal-form" data-form="edit-member">
+            <input type="hidden" name="user_id" />
+            <div class="form-group">
+               <label>Learning Path</label>
+               <select name="learning_path">
+                 <option value="Machine Learning">Machine Learning</option>
+                  <option value="Cloud Computing">Cloud Computing</option>
+                  <option value="Mobile Development">Mobile Development</option>
+               </select>
+            </div>
+             <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Simpan</button>
+             </div>
+         </form>
       </div>
+
     </div>
   `;
 }
 
+window.renderGroupDetail = renderGroupDetail;
+
 function renderGroupDetail(group) {
   return `
-    <div class="group-detail">
-      <div class="detail-section">
-        <h3>Informasi Tim</h3>
-        <div class="detail-grid">
-          <div class="detail-item">
-            <span class="detail-label">Nama Tim:</span>
-            <span class="detail-value">${group.group_name || "-"}</span>
-          </div>
-          <div class="detail-item">
-            <span class="detail-label">Batch ID:</span>
-            <span class="detail-value">${group.batch_id || "-"}</span>
-          </div>
-          <div class="detail-item">
-            <span class="detail-label">Status:</span>
-            <span class="detail-value"><span class="status-badge status-badge--${group.status || "pending"}">${(group.status || "pending").toUpperCase()}</span></span>
-          </div>
-          <div class="detail-item">
-            <span class="detail-label">Status Proyek:</span>
-            <span class="detail-value"><span class="status-badge status-badge--${group.project_status || "not_started"}">${(group.project_status || "not_started").replace("_", " ").toUpperCase()}</span></span>
-          </div>
-        </div>
+    <div class="group-detail-view">
+      
+      <!-- Info Header -->
+      <div class="detail-overview">
+         <div class="detail-avatar-lg">${(group.group_name || "?").charAt(0).toUpperCase()}</div>
+         <div>
+            <h2 class="detail-group-name">${group.group_name || "Tanpa Nama"}</h2>
+            <div class="detail-badges">
+                <span class="badge-pill">${group.batch_id || "-"}</span>
+                <span class="status-indicator status-${group.status || "pending"}">${(group.status || "pending")}</span>
+            </div>
+         </div>
+         <div class="detail-actions-top">
+             <button class="btn-icon" data-open-edit-group="${group.group_id}" title="Edit Info Tim">✎</button>
+         </div>
       </div>
 
+      <hr class="detail-divider" />
+
+      <!-- Members Section -->
       <div class="detail-section">
-        <h3>Anggota Tim</h3>
-        <div class="members-list">
+        <div class="section-title-row">
+            <h4>Anggota Tim (${group.members?.length || 0})</h4>
+            <div class="row-actions">
+               <button class="btn-text-sm" data-add-member="${group.group_id}">+ Add</button>
+            </div>
+        </div>
+        
+        <div class="members-grid-list">
           ${group.members && group.members.length > 0
       ? group.members
         .map(
           (member) => `
-              <div class="member-card">
-                <div class="member-info">
-                  <strong>${member.full_name || member.email || "Unknown"}</strong>
-                  <span class="member-email">${member.email || "-"}</span>
+              <div class="member-card-compact">
+                <div class="member-info-compact">
+                  <div class="member-name">${member.full_name || member.email || "Unknown"}</div>
+                  <div class="member-role">${member.email}</div>
+                  <div class="member-path">${member.learning_path || "No Path"}</div>
                 </div>
-                <div class="member-actions">
-                  <button class="btn-link btn-small" data-edit-member="${member.user_id}">Edit</button>
-                </div>
+                <button class="btn-icon-tiny" data-edit-member="${member.user_id}">✎</button>
               </div>
             `
         )
         .join("")
-      : "<p class='text-muted'>Belum ada anggota</p>"
+      : "<div class='empty-members'>Belum ada anggota</div>"
     }
-        </div>
-        <div class="detail-actions" style="margin-top: 16px;">
-          <button class="btn btn-outline btn-small" data-upload-members="${group.group_id}">Upload Anggota</button>
-          <button class="btn btn-outline btn-small" data-add-member="${group.group_id}">Tambah Anggota</button>
         </div>
       </div>
 
-      <div class="detail-section">
-        <h3>Aksi Validasi</h3>
-        <div class="validation-actions">
-          <button class="btn btn-primary" data-validate-group="${group.group_id}" data-validate-status="accepted">Terima Tim</button>
-          <button class="btn btn-danger" data-validate-group="${group.group_id}" data-validate-status="rejected">Tolak Tim</button>
-          ${group.status === "accepted" ? `<button class="btn btn-outline" data-start-project="${group.group_id}">Mulai Proyek</button>` : ""}
-        </div>
+      <!-- Validation Actions -->
+      <div class="detail-validation-area">
+         <h4>Tindakan Validasi</h4>
+         <div class="action-buttons-row">
+           ${group.status === 'pending' || group.status === 'rejected' ? `
+            <button class="btn-success-block" data-validate-group="${group.group_id}" data-validate-status="accepted">
+               ✅ Terima Tim
+            </button>
+            <button class="btn-danger-block" data-validate-group="${group.group_id}" data-validate-status="rejected">
+               ❌ Tolak Tim
+            </button>
+           ` : ''}
+           
+           ${group.status === 'accepted' ? `
+             <div class="accepted-banner">
+                <span>Tim ini telah diterima.</span>
+                ${group.project_status !== 'in_progress' ? `
+                  <button class="btn-primary-sm" data-start-project="${group.group_id}">Mulai Proyek 🚀</button>
+                ` : '<span class="text-success fw-bold">Proyek Sedang Berjalan</span>'}
+             </div>
+           ` : ''}
+         </div>
       </div>
+
     </div>
   `;
 }

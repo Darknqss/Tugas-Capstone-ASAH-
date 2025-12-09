@@ -105,17 +105,6 @@ class App {
     this.router.addRoute("/dokumen-timeline", DocumentsPage);
     this.router.addRoute("/individual-worksheet", WorksheetPage);
     this.router.addRoute("/360-feedback", FeedbackPage);
-    
-    // Admin routes
-    this.router.addRoute("/admin/dashboard", AdminDashboardPage);
-    this.router.addRoute("/admin/team-information", AdminTeamInfoPage);
-    this.router.addRoute("/admin/dokumen-timeline", AdminDocumentsPage);
-    this.router.addRoute("/admin/individual-worksheet", AdminWorksheetPage);
-    this.router.addRoute("/admin/360-feedback", AdminFeedbackPage);
-    
-    // Auth routes
-    this.router.addRoute("/login", LoginPage);
-    this.router.addRoute("/register", RegisterPage);
 
     // Admin routes
     this.router.addRoute("/admin-dashboard", AdminDashboardPage);
@@ -123,6 +112,10 @@ class App {
     this.router.addRoute("/admin-dokumen-timeline", AdminDocumentsPage);
     this.router.addRoute("/admin-individual-worksheet", AdminWorksheetPage);
     this.router.addRoute("/admin-360-feedback", AdminFeedbackPage);
+
+    // Auth routes
+    this.router.addRoute("/login", LoginPage);
+    this.router.addRoute("/register", RegisterPage);
 
     // Timeline route
     this.router.addRoute("/timeline", TimelinePage);
@@ -330,7 +323,27 @@ class App {
         event.preventDefault();
         const groupId = validateGroupBtn.dataset.validateGroup;
         const status = validateGroupBtn.dataset.validateStatus;
-        this.openValidateModal(groupId, status);
+        this.openValidationModal(groupId, status);
+      }
+
+      const editGroupBtn = event.target.closest("[data-edit-group]");
+      if (editGroupBtn) {
+        event.preventDefault();
+        const groupId = editGroupBtn.dataset.editGroup;
+        this.openEditGroupModal(groupId);
+      }
+
+      const openEditGroupBtn = event.target.closest("[data-open-edit-group]");
+      if (openEditGroupBtn) {
+        event.preventDefault();
+        const groupId = openEditGroupBtn.dataset.openEditGroup;
+        this.openEditGroupModal(groupId);
+      }
+
+      const addRuleBtn = event.target.closest("[data-add-rule]");
+      if (addRuleBtn) {
+        event.preventDefault();
+        this.addRuleField();
       }
 
       const startProject = event.target.closest("[data-start-project]");
@@ -369,6 +382,13 @@ class App {
       if (exportFeedbackBtn) {
         event.preventDefault();
         this.exportFeedbackData();
+      }
+
+      const editMemberBtn = event.target.closest("[data-edit-member]");
+      if (editMemberBtn) {
+        event.preventDefault();
+        const userId = editMemberBtn.dataset.editMember;
+        this.openEditMemberModal(userId);
       }
     });
 
@@ -628,12 +648,43 @@ class App {
     rulesList.appendChild(newRule);
   }
 
-  handleExportTeams() {
-    this.showToast("Fitur ekspor data tim akan segera tersedia");
+  openEditMemberModal(userId) {
+    const modal = document.querySelector("[data-modal='edit-member']");
+    if (!modal) return;
+    const form = modal.querySelector("form");
+    if (form) {
+      form.querySelector("[name='user_id']").value = userId;
+    }
+    modal.hidden = false;
+  }
+
+  async viewGroupDetail(groupId) {
+    try {
+      const response = await getAdminGroups();
+      const groups = response?.data || [];
+      const group = groups.find((g) => g.group_id === groupId);
+
+      if (!group) {
+        this.showToast("Detail tim tidak ditemukan");
+        return;
+      }
+
+      // Render content into the modal body
+      const modal = document.querySelector("[data-modal='group-detail']");
+      const contentArea = modal?.querySelector("[data-group-detail-content]");
+
+      if (modal && contentArea && window.renderGroupDetail) {
+        contentArea.innerHTML = window.renderGroupDetail(group);
+        modal.hidden = false;
+      }
+    } catch (error) {
+      console.error(error);
+      this.showToast("Gagal memuat detail tim");
+    }
   }
 
   handleRandomizeTeams() {
-    this.showToast("Fitur randomize tim akan segera tersedia");
+    this.showToast("Fitur randomize peserta akan segera tersedia (Simulasi) 🎲");
   }
 
   setupProfilePanel() {

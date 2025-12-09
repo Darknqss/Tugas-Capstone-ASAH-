@@ -62,11 +62,20 @@ export class Router {
             }
             // 2. Strict Role Redirection
             else if (path !== '/login' && path !== '/register') {
-                if (isAdmin && (path === '/dashboard' || path === '/team-information' || path === '/dokumen-timeline' || path === '/individual-worksheet')) {
-                    // Admin trying to access Student pages -> Redirect to Admin Dashboard
-                    path = '/admin-dashboard';
-                    window.history.replaceState({}, '', path);
-                    return this.loadRoute();
+                if (isAdmin) {
+                    // Map Student paths to Admin paths associated with them
+                    if (path === '/dashboard') path = '/admin-dashboard';
+                    else if (path === '/team-information') path = '/admin-team-information';
+                    else if (path === '/dokumen-timeline') path = '/admin-dokumen-timeline';
+                    else if (path === '/individual-worksheet') path = '/admin-individual-worksheet';
+                    else if (path === '/360-feedback') path = '/admin-360-feedback';
+
+                    // If path was changed, update history
+                    if (path !== window.location.pathname) {
+                        window.history.replaceState({}, '', path);
+                        // Recursively load the new route to ensure correct component
+                        return this.loadRoute();
+                    }
                 } else if (!isAdmin && (path === '/admin-dashboard' || path.startsWith('/admin-'))) {
                     // Student trying to access Admin pages -> Redirect to Student Dashboard
                     path = '/dashboard';
@@ -83,14 +92,42 @@ export class Router {
             path = '/' + path;
         }
 
-        const component = this.routes[path] || this.routes['/dashboard'] || this.routes['/admin-dashboard'];
+        console.log(`[Router] Loading path: ${path}`);
+
+        let component = this.routes[path];
+
+        // Handle root path redirection explicitly
+        if (!component) {
+            if (path === '/' || path === '') {
+                try {
+                    const session = JSON.parse(localStorage.getItem('capstone-auth-session') || '{}');
+                    const role = session?.user?.role;
+                    if (role === 'admin') {
+                        component = this.routes['/admin-dashboard'];
+                        if (window.location.pathname !== '/admin-dashboard') {
+                            window.history.replaceState({}, '', '/admin-dashboard');
+                        }
+                    } else {
+                        component = this.routes['/dashboard'];
+                        if (window.location.pathname !== '/dashboard') {
+                            window.history.replaceState({}, '', '/dashboard');
+                        }
+                    }
+                } catch (e) {
+                    component = this.routes['/dashboard'];
+                }
+            }
+        }
+
         if (component) {
+            console.log(`[Router] Component found for ${path}`);
             // Pastikan URL tidak memiliki hash sebelum render
             if (window.location.hash) {
                 window.history.replaceState({}, '', window.location.pathname + window.location.search);
             }
             this.render(component);
         } else {
+            console.error(`[Router] 404 for ${path}`);
             // Fallback untuk 404
             const app = document.getElementById('app');
             app.innerHTML = '<div style="text-align:center;padding:40px;"><h2>404 - Halaman tidak ditemukan</h2><a href="/dashboard" data-link>Kembali ke Dashboard</a></div>';
@@ -120,7 +157,7 @@ export class Router {
         }
 
         app.classList.add('fade-in');
-        
+
         try {
             const result = component();
             // Check if component returns a Promise
@@ -134,7 +171,7 @@ export class Router {
             console.error('Error rendering component:', error);
             app.innerHTML = '<div style="text-align: center; padding: 50px; color: red;">Error loading page</div>';
         }
-        
+
         // Remove animation class after animation completes
         setTimeout(() => {
             app.classList.remove('fade-in');
