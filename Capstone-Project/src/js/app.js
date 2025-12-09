@@ -1,4 +1,5 @@
 import { Router } from "./router.js";
+import { LandingPage } from "./components/landing.js";
 import { DashboardPage } from "./components/dashboard.js";
 import { TeamInfoPage } from "./components/teamInfo.js";
 import { DocumentsPage } from "./components/documents.js";
@@ -97,28 +98,32 @@ class App {
   }
 
   registerRoutes() {
-    // Student routes
-    this.router.addRoute("/", DashboardPage);
+    // Landing page (public)
+    this.router.addRoute("/", LandingPage);
+    
+    // Auth routes (public)
+    this.router.addRoute("/login", LoginPage);
+    this.router.addRoute("/register", RegisterPage);
+
+    // Student routes (protected)
     this.router.addRoute("/dashboard", DashboardPage);
     this.router.addRoute("/team-information", TeamInfoPage);
     this.router.addRoute("/team-registration", TeamRegistrationPage);
     this.router.addRoute("/dokumen-timeline", DocumentsPage);
     this.router.addRoute("/individual-worksheet", WorksheetPage);
     this.router.addRoute("/360-feedback", FeedbackPage);
-    this.router.addRoute("/login", LoginPage);
-    this.router.addRoute("/register", RegisterPage);
 
-    // Admin routes
+    // Admin routes (protected)
     this.router.addRoute("/admin-dashboard", AdminDashboardPage);
     this.router.addRoute("/admin-team-information", AdminTeamInfoPage);
     this.router.addRoute("/admin-dokumen-timeline", AdminDocumentsPage);
     this.router.addRoute("/admin-individual-worksheet", AdminWorksheetPage);
     this.router.addRoute("/admin-360-feedback", AdminFeedbackPage);
 
-    // Timeline route
+    // Timeline route (protected)
     this.router.addRoute("/timeline", TimelinePage);
 
-    // Deliverables route
+    // Deliverables route (protected)
     this.router.addRoute("/deliverables", DeliverablesPage);
   }
 

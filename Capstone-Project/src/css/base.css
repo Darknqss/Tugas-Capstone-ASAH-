@@ -54,14 +54,30 @@ button {
   flex-wrap: nowrap;
 }
 
+.logo-container {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 0 0 auto;
+  margin-right: auto;
+  margin-left: 0;
+}
+
+.header-logo-dicoding {
+  height: 70px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+}
+
 .logo {
   font-size: 24px;
   font-weight: 800;
   color: var(--primary-color);
   letter-spacing: 1px;
-  flex: 0 0 auto;
   white-space: nowrap;
   min-width: 0;
+  margin: 0;
 }
 
 .nav-menu {
@@ -290,6 +306,10 @@ button {
   .logo {
     font-size: 22px;
   }
+
+  .header-logo-dicoding {
+    height: 60px;
+  }
 }
 
 @media (max-width: 1024px) {
@@ -313,6 +333,14 @@ button {
   .logo {
     font-size: 20px;
   }
+
+  .header-logo-dicoding {
+    height: 55px;
+  }
+
+  .logo-container {
+    gap: 12px;
+  }
 }
 
 @media (max-width: 768px) {
@@ -325,6 +353,14 @@ button {
   .logo {
     font-size: 18px;
     flex: 0 0 auto;
+  }
+
+  .header-logo-dicoding {
+    height: 50px;
+  }
+
+  .logo-container {
+    gap: 10px;
   }
 
   .nav-menu {
@@ -392,6 +428,14 @@ button {
   .logo {
     font-size: 16px;
     letter-spacing: 0.5px;
+  }
+
+  .header-logo-dicoding {
+    height: 45px;
+  }
+
+  .logo-container {
+    gap: 8px;
   }
 
   .nav-link {

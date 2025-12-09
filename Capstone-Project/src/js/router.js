@@ -50,18 +50,35 @@ export class Router {
         // Handle root path and Role-Based Redirection
         try {
             const session = JSON.parse(localStorage.getItem('capstone-auth-session') || '{}');
+            const hasUser = session?.user;
             const role = session?.user?.role;
             const isAdmin = role?.toLowerCase() === 'admin';
 
-            // 1. Root path handling
+            // 1. Root path handling - Show landing page if not logged in
             if (path === '/' || path === '') {
-                path = isAdmin ? '/admin-dashboard' : '/dashboard';
-                if (path !== window.location.pathname) {
-                    window.history.replaceState({}, '', path);
+                if (!hasUser) {
+                    // User not logged in - show landing page
+                    path = '/';
+                    if (path !== window.location.pathname) {
+                        window.history.replaceState({}, '', path);
+                    }
+                } else {
+                    // User logged in - redirect to appropriate dashboard
+                    path = isAdmin ? '/admin-dashboard' : '/dashboard';
+                    if (path !== window.location.pathname) {
+                        window.history.replaceState({}, '', path);
+                    }
                 }
             }
-            // 2. Strict Role Redirection
-            else if (path !== '/login' && path !== '/register') {
+            // 2. Protect authenticated routes - redirect to landing if not logged in
+            else if (path !== '/login' && path !== '/register' && path !== '/') {
+                if (!hasUser) {
+                    // User not logged in trying to access protected route - redirect to landing
+                    path = '/';
+                    window.history.replaceState({}, '', path);
+                    return this.loadRoute();
+                }
+                // 3. Strict Role Redirection
                 if (isAdmin && (path === '/dashboard' || path === '/team-information' || path === '/dokumen-timeline' || path === '/individual-worksheet')) {
                     // Admin trying to access Student pages -> Redirect to Admin Dashboard
                     path = '/admin-dashboard';
@@ -75,7 +92,10 @@ export class Router {
             }
         } catch (e) {
             console.warn("Router session check failed:", e);
-            if (path === '/' || path === '') path = '/dashboard';
+            // If error, show landing page for root, or keep current path
+            if (path === '/' || path === '') {
+                path = '/';
+            }
         }
 
         // Normalisasi path
@@ -83,7 +103,33 @@ export class Router {
             path = '/' + path;
         }
 
-        const component = this.routes[path] || this.routes['/dashboard'] || this.routes['/admin-dashboard'];
+        // Try to get component for current path, with fallbacks
+        let component = this.routes[path];
+        
+        // Fallback logic
+        if (!component) {
+            if (path === '/') {
+                // If landing page route exists, use it
+                component = this.routes['/'];
+            } else {
+                // Try dashboard routes as fallback
+                try {
+                    const session = JSON.parse(localStorage.getItem('capstone-auth-session') || '{}');
+                    const hasUser = session?.user;
+                    const role = session?.user?.role;
+                    const isAdmin = role?.toLowerCase() === 'admin';
+                    
+                    if (hasUser) {
+                        component = isAdmin ? this.routes['/admin-dashboard'] : this.routes['/dashboard'];
+                    } else {
+                        component = this.routes['/'];
+                    }
+                } catch (e) {
+                    component = this.routes['/'];
+                }
+            }
+        }
+        
         if (component) {
             // Pastikan URL tidak memiliki hash sebelum render
             if (window.location.hash) {
@@ -93,7 +139,7 @@ export class Router {
         } else {
             // Fallback untuk 404
             const app = document.getElementById('app');
-            app.innerHTML = '<div style="text-align:center;padding:40px;"><h2>404 - Halaman tidak ditemukan</h2><a href="/dashboard" data-link>Kembali ke Dashboard</a></div>';
+            app.innerHTML = '<div style="text-align:center;padding:40px;"><h2>404 - Halaman tidak ditemukan</h2><a href="/" data-link>Kembali ke Halaman Utama</a></div>';
         }
     }
 
