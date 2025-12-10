@@ -32,6 +32,8 @@ import {
   validateGroupRegistration,
   setGroupRules,
   listAllGroups,
+  updateAdminGroup,
+  updateProjectStatus,
 } from "./services/adminService.js";
 
 const TEAM_REGISTRATION_KEY = "capstone-team-registration";
@@ -210,12 +212,32 @@ class App {
           this.handleUpdateUserLearningPath(form);
           return;
         }
+        if (form.matches('[data-edit-group-form]')) {
+          event.preventDefault();
+          this.handleEditGroup(form);
+          return;
+        }
+        if (form.matches('[data-form="registration-period"]')) {
+          event.preventDefault();
+          this.handleRegistrationPeriod(form);
+          return;
+        }
+        if (form.matches('[data-form="randomize-teams"]')) {
+          event.preventDefault();
+          this.handleRandomizeTeams(form);
+          return;
+        }
+        if (form.matches('[data-form="upload-members"]')) {
+          event.preventDefault();
+          this.handleUploadMembers(form);
+          return;
+        }
 
 
 
         if (form.matches("[data-registration-form]")) {
           event.preventDefault();
-          this.handleTeamRegistrationSubmit(form);
+          this.handleTeamRegistrationSubmit(form, event);
           return;
         }
 
@@ -294,10 +316,17 @@ class App {
       }
 
       const viewGroup = event.target.closest("[data-view-group]");
-      if (viewGroup) {
+      if (viewGroup && !event.target.closest("button[data-open-edit-group]")) {
         event.preventDefault();
+        event.stopPropagation();
         const groupId = viewGroup.dataset.viewGroup;
-        this.viewGroupDetail(groupId);
+        console.log("[App] View detail button clicked, groupId:", groupId);
+        if (groupId) {
+          this.viewGroupDetail(groupId);
+        } else {
+          console.error("[App] No groupId found in view button");
+          this.showToast("ID tim tidak ditemukan");
+        }
       }
 
       const validateGroupBtn = event.target.closest("[data-validate-group]");
@@ -318,8 +347,29 @@ class App {
       const openEditGroupBtn = event.target.closest("[data-open-edit-group]");
       if (openEditGroupBtn) {
         event.preventDefault();
+        event.stopPropagation();
         const groupId = openEditGroupBtn.dataset.openEditGroup;
-        this.openEditGroupModal(groupId);
+        console.log("[App] Edit button clicked, groupId:", groupId);
+        if (groupId) {
+          this.openEditGroupModal(groupId);
+        } else {
+          console.error("[App] No groupId found in button");
+          this.showToast("ID tim tidak ditemukan");
+        }
+      }
+
+      // Handle table row click for viewing group detail (only if not clicking on a button)
+      const groupRow = event.target.closest("tr[data-view-group]");
+      if (groupRow && 
+          !event.target.closest("button") && 
+          !event.target.closest("a") &&
+          !event.target.closest("[data-view-group]")?.matches("button")) {
+        event.preventDefault();
+        const groupId = groupRow.dataset.viewGroup || groupRow.dataset.groupId;
+        console.log("[App] Row clicked, groupId:", groupId);
+        if (groupId) {
+          this.viewGroupDetail(groupId);
+        }
       }
 
       const addRuleBtn = event.target.closest("[data-add-rule]");
@@ -371,6 +421,13 @@ class App {
         event.preventDefault();
         const userId = editMemberBtn.dataset.editMember;
         this.openEditMemberModal(userId);
+      }
+
+      const uploadMembersBtn = event.target.closest("[data-upload-members]");
+      if (uploadMembersBtn) {
+        event.preventDefault();
+        const groupId = uploadMembersBtn.dataset.uploadMembers;
+        this.openUploadMembersModal(groupId);
       }
     });
 
@@ -450,6 +507,7 @@ class App {
 
     try {
       this.toggleSubmitLoading(form, true);
+      const { updateAdminGroup } = await import("./services/adminService.js");
       await updateAdminGroup(groupId, payload);
       this.showToast("Grup berhasil diperbarui ✅");
       form.reset();
@@ -505,34 +563,6 @@ class App {
     }
   }
 
-  async handleValidateGroup(form) {
-    this.resetFormState(form);
-    const formData = new FormData(form);
-    const groupId = formData.get("group_id");
-    const action = formData.get("action");
-    const rejectionReason = formData.get("rejection_reason")?.trim();
-
-    const payload = {
-      status: action === "accept" ? "accepted" : "rejected",
-    };
-
-    if (action === "reject" && rejectionReason) {
-      payload.rejection_reason = rejectionReason;
-    }
-
-    try {
-      this.toggleSubmitLoading(form, true);
-      await validateGroupRegistration(groupId, payload);
-      this.showToast(`Tim ${action === "accept" ? "diterima" : "ditolak"} ✅`);
-      const modal = document.querySelector("[data-validation-modal]");
-      if (modal) modal.hidden = true;
-      this.router.loadRoute();
-    } catch (error) {
-      this.applyApiErrors(form, error);
-    } finally {
-      this.toggleSubmitLoading(form, false);
-    }
-  }
 
   async handleStartProject(groupId) {
     try {
@@ -544,14 +574,16 @@ class App {
     }
   }
 
-  openValidationModal(groupId, action) {
-    const modal = document.querySelector("[data-validation-modal]");
+  openValidationModal(groupId, status) {
+    const modal = document.querySelector('[data-modal="validate-group"]');
+    const backdrop = document.querySelector("[data-modal-backdrop]");
     const form = modal?.querySelector("[data-validation-form]");
     const title = modal?.querySelector("[data-modal-title]");
     const reasonRow = modal?.querySelector("[data-rejection-reason-row]");
 
     if (!modal || !form) return;
 
+    const action = status === "accepted" ? "accept" : "reject";
     form.querySelector('[name="group_id"]').value = groupId;
     form.querySelector('[name="action"]').value = action;
 
@@ -563,32 +595,97 @@ class App {
       reasonRow.hidden = action !== "reject";
     }
 
-    modal.hidden = false;
+    if (modal && backdrop) {
+      modal.hidden = false;
+      backdrop.hidden = false;
+    }
   }
 
   async openEditGroupModal(groupId) {
     try {
-      const response = await getAdminGroups();
-      const groups = response?.data || [];
-      const group = groups.find((g) => g.group_id === groupId);
+      console.log("[openEditGroupModal] Opening edit modal for groupId:", groupId);
+      const { listAllGroups } = await import("./services/adminService.js");
+      const response = await listAllGroups();
+      
+      // Handle different response structures
+      let groups = [];
+      if (response?.data && Array.isArray(response.data)) {
+        groups = response.data;
+      } else if (response?.groups && Array.isArray(response.groups)) {
+        groups = response.groups;
+      } else if (Array.isArray(response)) {
+        groups = response;
+      }
+      
+      console.log("[openEditGroupModal] Groups fetched:", groups.length);
+      
+      // Normalize field names - same as in AdminTeamInfoPage
+      const normalizedGroups = groups.map(group => ({
+        group_id: group.group_id || group.id || group.groupId || null,
+        group_name: group.group_name || group.name || group.groupName || "-",
+        batch_id: group.batch_id || group.batchId || "-",
+        status: group.status || group.group_status || "pending",
+        project_status: group.project_status || group.projectStatus || "not_started",
+        members: group.members || group.group_members || [],
+        ...group // Keep all other fields
+      }));
+      
+      // Find group with multiple matching strategies
+      const group = normalizedGroups.find((g) => {
+        const gId = g.group_id || g.id || g.groupId;
+        return (
+          gId === groupId ||
+          String(gId) === String(groupId) ||
+          gId?.toString() === groupId?.toString()
+        );
+      });
+
+      console.log("[openEditGroupModal] Group found:", group);
+      console.log("[openEditGroupModal] Searching for:", groupId);
+      console.log("[openEditGroupModal] Available IDs:", normalizedGroups.map(g => g.group_id || g.id));
 
       if (!group) {
-        this.showToast("Grup tidak ditemukan");
+        console.error("[openEditGroupModal] Group not found. Available groups:", normalizedGroups);
+        this.showToast("Grup tidak ditemukan. Silakan refresh halaman.");
         return;
       }
 
-      const panel = document.querySelector("[data-edit-group-panel]");
-      const form = panel?.querySelector("[data-edit-group-form]");
+      const modal = document.querySelector('[data-modal="edit-group"]');
+      const backdrop = document.querySelector("[data-modal-backdrop]");
+      const form = modal?.querySelector("[data-edit-group-form]");
 
-      if (!panel || !form) return;
+      if (!modal || !form) {
+        console.error("[openEditGroupModal] Modal or form not found");
+        return;
+      }
 
-      form.querySelector('[name="group_id"]').value = group.group_id || "";
-      form.querySelector('[name="group_name"]').value = group.group_name || "";
-      form.querySelector('[name="batch_id"]').value = group.batch_id || "";
-      form.querySelector('[name="status"]').value = group.status || "pending";
+      // Use normalized fields
+      const groupIdInput = form.querySelector('[name="group_id"]');
+      const groupNameInput = form.querySelector('[name="group_name"]');
+      const batchIdInput = form.querySelector('[name="batch_id"]');
+      const statusInput = form.querySelector('[name="status"]');
 
-      panel.hidden = false;
+      if (groupIdInput) groupIdInput.value = group.group_id || group.id || "";
+      if (groupNameInput) groupNameInput.value = group.group_name || group.name || "";
+      if (batchIdInput) batchIdInput.value = group.batch_id || group.batchId || "";
+      if (statusInput) {
+        const statusValue = (group.status || "pending").toLowerCase();
+        statusInput.value = statusValue;
+      }
+
+      console.log("[openEditGroupModal] Form populated:", {
+        group_id: group.group_id || group.id,
+        group_name: group.group_name || group.name,
+        batch_id: group.batch_id || group.batchId,
+        status: group.status
+      });
+
+      if (modal && backdrop) {
+        modal.hidden = false;
+        backdrop.hidden = false;
+      }
     } catch (error) {
+      console.error("[openEditGroupModal] Error:", error);
       this.showToast("Gagal memuat data grup");
     }
   }
@@ -599,33 +696,35 @@ class App {
 
     const newRule = document.createElement("div");
     newRule.className = "rule-item";
+    newRule.style.cssText = "padding: 16px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef; position: relative;";
     newRule.innerHTML = `
-      <div class="form-row">
-        <label>Atribut Pengguna</label>
-        <select name="user_attribute" required>
-          <option value="learning_path">Learning Path</option>
-          <option value="progress">Progress</option>
-        </select>
+      <button type="button" class="btn-icon-tiny" onclick="this.closest('.rule-item').remove()" style="position: absolute; top: 8px; right: 8px; background: #fee; color: #c33; border: none; cursor: pointer; width: 24px; height: 24px; border-radius: 4px; font-size: 16px; display: flex; align-items: center; justify-content: center;">×</button>
+      <div style="display: grid; gap: 12px;">
+        <div class="form-row">
+          <label style="font-weight: 600; font-size: 13px; display: block; margin-bottom: 4px;">Learning Path</label>
+          <select name="attribute_value" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
+            <option value="">Pilih Learning Path</option>
+            <option value="Machine Learning">Machine Learning</option>
+            <option value="Front-End & Back-End">Front-End & Back-End</option>
+            <option value="React & Back-End">React & Back-End</option>
+            <option value="Cloud Computing">Cloud Computing</option>
+            <option value="Mobile Development">Mobile Development</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label style="font-weight: 600; font-size: 13px; display: block; margin-bottom: 4px;">Operator</label>
+          <select name="operator" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
+            <option value=">=">Minimal (>=)</option>
+            <option value="<=">Maksimal (<=)</option>
+            <option value="==">Sama dengan (==)</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label style="font-weight: 600; font-size: 13px; display: block; margin-bottom: 4px;">Jumlah Anggota</label>
+          <input type="number" name="value" min="1" max="10" placeholder="Contoh: 2" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px;" />
+        </div>
+        <input type="hidden" name="user_attribute" value="learning_path" />
       </div>
-      <div class="form-row">
-        <label>Nilai Atribut</label>
-        <input type="text" name="attribute_value" placeholder="Contoh: Machine Learning" required />
-      </div>
-      <div class="form-row">
-        <label>Operator</label>
-        <select name="operator" required>
-          <option value=">=">>=</option>
-          <option value="<="><=</option>
-          <option value="==">==</option>
-        </select>
-      </div>
-      <div class="form-row">
-        <label>Nilai</label>
-        <input type="text" name="value" placeholder="Contoh: 2" required />
-      </div>
-      <button type="button" class="btn btn-danger btn-small" onclick="this.closest('.rule-item').remove()">
-        Hapus
-      </button>
     `;
     rulesList.appendChild(newRule);
   }
@@ -642,25 +741,110 @@ class App {
 
   async viewGroupDetail(groupId) {
     try {
-      const response = await getAdminGroups();
-      const groups = response?.data || [];
-      const group = groups.find((g) => g.group_id === groupId);
+      console.log("[viewGroupDetail] Opening detail for groupId:", groupId);
+      const { listAllGroups } = await import("./services/adminService.js");
+      const { getUseCases } = await import("./services/userService.js");
+      
+      // Fetch groups and use cases in parallel
+      const [groupsResponse, useCasesResponse] = await Promise.all([
+        listAllGroups(),
+        getUseCases().catch(() => ({ data: [] })) // Fallback if use cases fail
+      ]);
+      
+      // Handle different response structures
+      let groups = [];
+      if (groupsResponse?.data && Array.isArray(groupsResponse.data)) {
+        groups = groupsResponse.data;
+      } else if (groupsResponse?.groups && Array.isArray(groupsResponse.groups)) {
+        groups = groupsResponse.groups;
+      } else if (Array.isArray(groupsResponse)) {
+        groups = groupsResponse;
+      }
+      
+      const useCases = useCasesResponse?.data || [];
+      
+      // Normalize field names - same as in AdminTeamInfoPage
+      const normalizedGroups = groups.map(group => ({
+        group_id: group.group_id || group.id || group.groupId || null,
+        group_name: group.group_name || group.name || group.groupName || "-",
+        batch_id: group.batch_id || group.batchId || "-",
+        status: group.status || group.group_status || "pending",
+        project_status: group.project_status || group.projectStatus || "not_started",
+        members: group.members || group.group_members || group.users || [],
+        use_case_source_id: group.use_case_source_id || group.use_case_id || group.use_case_ref || null,
+        use_case_name: group.use_case_name || group.use_case || null,
+        description: group.description || group.desc || null,
+        ...group // Keep all other fields
+      }));
+      
+      // Find group with multiple matching strategies
+      const group = normalizedGroups.find((g) => {
+        const gId = g.group_id || g.id || g.groupId;
+        return (
+          gId === groupId ||
+          String(gId) === String(groupId) ||
+          gId?.toString() === groupId?.toString()
+        );
+      });
+
+      console.log("[viewGroupDetail] Group found:", group);
+      console.log("[viewGroupDetail] Group members:", group?.members);
 
       if (!group) {
+        console.error("[viewGroupDetail] Group not found. Available IDs:", normalizedGroups.map(g => g.group_id || g.id));
         this.showToast("Detail tim tidak ditemukan");
         return;
       }
 
+      // Find use case name if we have use_case_source_id
+      if (group.use_case_source_id && useCases.length > 0) {
+        const useCase = useCases.find(uc => {
+          const ucId = uc.capstone_use_case_source_id || uc.id || uc.use_case_id;
+          return ucId === group.use_case_source_id || String(ucId) === String(group.use_case_source_id);
+        });
+        if (useCase) {
+          group.use_case_name = useCase.name || group.use_case_name;
+          group.use_case_company = useCase.company || null;
+        }
+      }
+
       // Render content into the modal body
-      const modal = document.querySelector("[data-modal='group-detail']");
+      const modal = document.querySelector('[data-modal="group-detail"]');
+      const backdrop = document.querySelector("[data-modal-backdrop]");
       const contentArea = modal?.querySelector("[data-group-detail-content]");
 
-      if (modal && contentArea && window.renderGroupDetail) {
-        contentArea.innerHTML = window.renderGroupDetail(group);
+      if (!modal) {
+        console.error("[viewGroupDetail] Modal not found");
+        this.showToast("Modal detail tidak ditemukan");
+        return;
+      }
+
+      if (!contentArea) {
+        console.error("[viewGroupDetail] Content area not found");
+        this.showToast("Area konten tidak ditemukan");
+        return;
+      }
+
+      if (!window.renderGroupDetail) {
+        console.error("[viewGroupDetail] renderGroupDetail function not found");
+        this.showToast("Fungsi render tidak ditemukan");
+        return;
+      }
+
+      // Render the detail content
+      contentArea.innerHTML = window.renderGroupDetail(group);
+      
+      // Show modal and backdrop
+      if (modal && backdrop) {
         modal.hidden = false;
+        backdrop.hidden = false;
+        console.log("[viewGroupDetail] Modal opened successfully");
+      } else {
+        modal.hidden = false;
+        console.log("[viewGroupDetail] Modal opened (no backdrop)");
       }
     } catch (error) {
-      console.error(error);
+      console.error("[viewGroupDetail] Error:", error);
       this.showToast("Gagal memuat detail tim");
     }
   }
@@ -852,6 +1036,25 @@ class App {
   toggleSubmitLoading(form, isLoading) {
     const submitButton = form.querySelector('[type="submit"]');
     if (!submitButton) return;
+    
+    // Handle button with btn-text and btn-loading spans (team registration)
+    const btnText = submitButton.querySelector('.btn-text');
+    const btnLoading = submitButton.querySelector('.btn-loading');
+    
+    if (btnText && btnLoading) {
+      if (isLoading) {
+        btnText.hidden = true;
+        btnLoading.hidden = false;
+        submitButton.disabled = true;
+      } else {
+        btnText.hidden = false;
+        btnLoading.hidden = true;
+        submitButton.disabled = false;
+      }
+      return;
+    }
+    
+    // Fallback for buttons without spans
     const originalText =
       submitButton.dataset.submitText || submitButton.textContent;
     if (isLoading) {
@@ -1160,8 +1363,8 @@ class App {
     }
   }
 
-  async handleTeamRegistrationSubmit(form) {
-    event.preventDefault();
+  async handleTeamRegistrationSubmit(form, event) {
+    if (event) event.preventDefault();
     this.resetFormState(form);
     const formData = new FormData(form);
 
@@ -1190,13 +1393,19 @@ class App {
       this.toggleSubmitLoading(form, true);
       const { registerTeam } = await import("./services/groupService.js");
       const response = await registerTeam(payload);
+      console.log("[handleTeamRegistrationSubmit] Success:", response);
       this.showToast("Pendaftaran tim berhasil dikirim dan menunggu validasi ✅");
       form.reset();
       this.toggleTeamRegistrationPanel(false);
       // Reload the page to show updated team data
-      this.router.loadRoute();
+      setTimeout(() => {
+        this.router.loadRoute();
+      }, 1000);
     } catch (error) {
-      this.applyApiErrors(form, error);
+      console.error("[handleTeamRegistrationSubmit] Error:", error);
+      const errorMessage = error?.details?.message || error?.message || "Gagal mendaftarkan tim. Silakan coba lagi.";
+      this.showFormFeedback(form, errorMessage, true);
+      this.showToast(errorMessage);
     } finally {
       this.toggleSubmitLoading(form, false);
     }
@@ -1399,11 +1608,17 @@ class App {
       case "create-group":
         this.openModal("create-group");
         break;
+      case "set-registration-period":
+        await this.openRegistrationPeriodModal();
+        break;
       case "set-rules":
         this.openModal("set-rules");
         break;
       case "export-data":
-        this.handleExportData();
+        await this.handleExportData();
+        break;
+      case "randomize-teams":
+        await this.openRandomizeTeamsModal();
         break;
       case "randomize":
         this.handleRandomize();
@@ -1500,17 +1715,48 @@ class App {
   async handleSetRules(form) {
     this.resetFormState(form);
     const formData = new FormData(form);
+    const batchId = formData.get("batch_id")?.trim();
+    const useCaseRef = formData.get("use_case_ref")?.trim();
+    const isActive = formData.get("is_active") === "on";
+
+    if (!batchId) {
+      this.showFormFeedback(form, "Batch ID wajib diisi", true);
+      return;
+    }
+
+    // Collect all rules from the form
+    const rules = [];
+    const ruleItems = form.querySelectorAll(".rule-item");
+    ruleItems.forEach((item) => {
+      const userAttribute = item.querySelector('[name="user_attribute"]')?.value || "learning_path";
+      const attributeValue = item.querySelector('[name="attribute_value"]')?.value;
+      const operator = item.querySelector('[name="operator"]')?.value;
+      const value = item.querySelector('[name="value"]')?.value;
+
+      if (attributeValue && operator && value) {
+        rules.push({
+          user_attribute: userAttribute,
+          attribute_value: attributeValue,
+          operator: operator,
+          value: parseInt(value) || value,
+        });
+      }
+    });
+
+    if (rules.length === 0) {
+      this.showFormFeedback(form, "Minimal satu aturan komposisi harus ditambahkan", true);
+      return;
+    }
+
     const payload = {
-      batch_id: formData.get("batch_id")?.trim(),
-      rules: [
-        {
-          user_attribute: "learning_path",
-          attribute_value: formData.get("learning_path")?.trim(),
-          operator: formData.get("operator")?.trim(),
-          value: formData.get("value")?.trim(),
-        },
-      ],
+      batch_id: batchId,
+      rules: rules,
+      is_active: isActive,
     };
+
+    if (useCaseRef) {
+      payload.use_case_ref = useCaseRef;
+    }
 
     try {
       this.toggleSubmitLoading(form, true);
@@ -1518,6 +1764,9 @@ class App {
       this.showToast("Aturan komposisi tim berhasil disimpan ✅");
       this.closeModal();
       form.reset();
+      // Clear rules list
+      const rulesList = document.getElementById("rules-list");
+      if (rulesList) rulesList.innerHTML = "";
     } catch (error) {
       this.applyApiErrors(form, error);
     } finally {
@@ -1525,19 +1774,88 @@ class App {
     }
   }
 
-  openValidateModal(groupId, status) {
+  async openValidationModal(groupId, status) {
     const modal = document.querySelector('[data-modal="validate-group"]');
     const backdrop = document.querySelector("[data-modal-backdrop]");
-    const groupIdInput = modal?.querySelector("[data-group-id-input]");
-    const statusSelect = modal?.querySelector("[data-validate-status]");
-    const reasonGroup = modal?.querySelector("[data-rejection-reason-group]");
+    const form = modal?.querySelector("[data-validation-form]");
+    const title = modal?.querySelector("[data-modal-title]");
+    const reasonRow = modal?.querySelector("[data-rejection-reason-row]");
+    const confirmationMessage = modal?.querySelector("[data-confirmation-message]");
+    const submitButton = form?.querySelector('[type="submit"]');
+    const groupInfo = modal?.querySelector("[data-group-info]");
+    const groupName = modal?.querySelector("[data-group-name]");
+    const groupBatch = modal?.querySelector("[data-group-batch]");
+    const groupMembers = modal?.querySelector("[data-group-members]");
 
-    if (modal && backdrop && groupIdInput && statusSelect) {
-      groupIdInput.value = groupId;
-      statusSelect.value = status;
-      if (reasonGroup) {
-        reasonGroup.hidden = status !== "rejected";
+    if (!modal || !form) return;
+
+    // Fetch group details to show in modal
+    try {
+      const { listAllGroups } = await import("./services/adminService.js");
+      const response = await listAllGroups();
+      const groups = response?.data || response?.groups || response || [];
+      const group = groups.find((g) => 
+        (g.group_id || g.id) === groupId || 
+        String(g.group_id || g.id) === String(groupId)
+      );
+
+      if (group && groupInfo) {
+        const normalizedGroup = {
+          group_name: group.group_name || group.name || "-",
+          batch_id: group.batch_id || group.batchId || "-",
+          members: group.members || group.group_members || []
+        };
+
+        if (groupName) groupName.textContent = normalizedGroup.group_name;
+        if (groupBatch) groupBatch.textContent = normalizedGroup.batch_id;
+        if (groupMembers) groupMembers.textContent = `${normalizedGroup.members.length} anggota`;
       }
+    } catch (error) {
+      console.error("Error fetching group details:", error);
+    }
+
+    const action = status === "accepted" ? "accept" : "reject";
+    const groupIdInput = form.querySelector('[name="group_id"]');
+    const actionInput = form.querySelector('[name="action"]');
+    const statusInput = form.querySelector('[name="status"]');
+
+    if (groupIdInput) groupIdInput.value = groupId;
+    if (actionInput) actionInput.value = action;
+    if (statusInput) {
+      statusInput.value = status;
+    } else {
+      // Add status input if it doesn't exist
+      const statusHidden = document.createElement('input');
+      statusHidden.type = 'hidden';
+      statusHidden.name = 'status';
+      statusHidden.value = status;
+      form.appendChild(statusHidden);
+    }
+
+    if (title) {
+      title.textContent = action === "accept" ? "Terima Tim" : "Tolak Tim";
+    }
+
+    if (confirmationMessage) {
+      confirmationMessage.textContent = action === "accept" 
+        ? "Apakah Anda yakin ingin menerima tim ini? Tim yang diterima dapat memulai proyek capstone."
+        : "Apakah Anda yakin ingin menolak tim ini? Pastikan alasan penolakan sudah diisi.";
+    }
+
+    if (submitButton) {
+      submitButton.textContent = action === "accept" ? "✅ Terima Tim" : "❌ Tolak Tim";
+      submitButton.className = action === "accept" ? "btn btn-success" : "btn btn-danger";
+    }
+
+    if (reasonRow) {
+      reasonRow.hidden = action !== "reject";
+      const textarea = reasonRow.querySelector('textarea[name="rejection_reason"]');
+      if (textarea && action === "reject") {
+        textarea.required = true;
+      }
+    }
+
+    if (modal && backdrop) {
       modal.hidden = false;
       backdrop.hidden = false;
     }
@@ -1548,15 +1866,26 @@ class App {
     this.resetFormState(form);
     const formData = new FormData(form);
     const groupId = formData.get("group_id");
-    const status = formData.get("status");
+    const status = formData.get("status") || formData.get("action");
+    
+    // Normalize status
+    let normalizedStatus = status;
+    if (status === "accept" || status === "accepted") {
+      normalizedStatus = "accepted";
+    } else if (status === "reject" || status === "rejected") {
+      normalizedStatus = "rejected";
+    }
+    
     const payload = {
-      status,
+      status: normalizedStatus,
     };
 
-    if (status === "rejected") {
+    if (normalizedStatus === "rejected") {
       const reason = formData.get("rejection_reason")?.trim();
       if (!reason) {
         this.showFormFeedback(form, "Alasan penolakan wajib diisi", true);
+        const reasonRow = form.querySelector("[data-rejection-reason-row]");
+        if (reasonRow) reasonRow.hidden = false;
         return;
       }
       payload.rejection_reason = reason;
@@ -1564,9 +1893,10 @@ class App {
 
     try {
       this.toggleSubmitLoading(form, true);
+      const { validateGroupRegistration } = await import("./services/adminService.js");
       await validateGroupRegistration(groupId, payload);
       this.showToast(
-        `Tim ${status === "accepted" ? "diterima" : "ditolak"} ✅`
+        `Tim ${normalizedStatus === "accepted" ? "diterima" : "ditolak"} ✅`
       );
       this.closeModal();
       form.reset();
@@ -1580,6 +1910,7 @@ class App {
 
   async handleStartProject(groupId) {
     try {
+      const { updateProjectStatus } = await import("./services/adminService.js");
       await updateProjectStatus(groupId);
       this.showToast("Proyek dimulai ✅");
       this.router.loadRoute();
@@ -1589,9 +1920,6 @@ class App {
     }
   }
 
-  async viewGroupDetail(groupId) {
-    this.router.navigate(`admin-team-information?groupId=${groupId}`);
-  }
 
   closeGroupDetail() {
     const panel = document.querySelector("[data-group-detail-panel]");
@@ -1601,8 +1929,146 @@ class App {
     this.router.navigate("admin-team-information");
   }
 
-  handleExportData() {
-    this.showToast("Fitur ekspor data akan segera tersedia");
+  async handleExportData() {
+    try {
+      this.showToast("Mengekspor data tim...");
+      const { exportTeamsData, listAllGroups } = await import("./services/adminService.js");
+      
+      // Try to use export endpoint first, fallback to listAllGroups
+      let data = [];
+      try {
+        const exportResponse = await exportTeamsData();
+        data = exportResponse?.data || exportResponse || [];
+      } catch (exportError) {
+        console.warn("Export endpoint not available, using listAllGroups:", exportError);
+        const response = await listAllGroups();
+        data = response?.data || response?.groups || response || [];
+      }
+
+      if (!Array.isArray(data) || data.length === 0) {
+        this.showToast("Tidak ada data tim untuk diekspor");
+        return;
+      }
+
+      // Prepare CSV data
+      const headers = ["Nama Tim", "Batch ID", "Status", "Jumlah Anggota", "Status Proyek", "Anggota"];
+      const rows = data.map(group => {
+        const members = group.members || [];
+        const memberNames = members.map(m => 
+          m.full_name || m.name || m.email || "Unknown"
+        ).join("; ");
+        
+        return [
+          group.group_name || group.name || "-",
+          group.batch_id || "-",
+          (group.status || "pending").toUpperCase(),
+          members.length,
+          (group.project_status || "not_started").replace(/_/g, " "),
+          memberNames || "-"
+        ];
+      });
+
+      // Create CSV content
+      const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      ].join('\n');
+
+      // Download CSV
+      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `teams_export_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      this.showToast("Data tim berhasil diekspor ✅");
+    } catch (error) {
+      console.error("Error exporting teams:", error);
+      this.showToast("Gagal mengekspor data tim");
+    }
+  }
+
+  async openRandomizeTeamsModal() {
+    try {
+      const { getStudentsWithoutTeam } = await import("./services/adminService.js");
+      const response = await getStudentsWithoutTeam();
+      const students = response?.data || response || [];
+      
+      const modal = document.querySelector('[data-modal="randomize-teams"]');
+      const backdrop = document.querySelector("[data-modal-backdrop]");
+      
+      if (modal && backdrop) {
+        // Show count of students without team
+        const form = modal.querySelector('form');
+        if (form && students.length > 0) {
+          const infoText = form.querySelector('.text-sm.text-muted');
+          if (infoText) {
+            infoText.textContent = `Terdapat ${students.length} peserta yang belum memiliki tim. Fitur ini akan secara otomatis membentuk tim untuk mereka berdasarkan progres belajar.`;
+          }
+        }
+        
+        modal.hidden = false;
+        backdrop.hidden = false;
+      }
+    } catch (error) {
+      console.error("Error opening randomize modal:", error);
+      this.showToast("Gagal memuat data peserta");
+    }
+  }
+
+  async openRegistrationPeriodModal() {
+    try {
+      const { getRegistrationPeriod } = await import("./services/adminService.js");
+      const response = await getRegistrationPeriod();
+      const period = response?.data || response || {};
+      
+      const modal = document.querySelector('[data-modal="registration-period"]');
+      const backdrop = document.querySelector("[data-modal-backdrop]");
+      const form = modal?.querySelector('form');
+      
+      if (modal && backdrop && form) {
+        // Populate form if period exists
+        if (period.start_date) {
+          const startInput = form.querySelector('[name="start_date"]');
+          if (startInput) {
+            // Convert to datetime-local format
+            const startDate = new Date(period.start_date);
+            startInput.value = startDate.toISOString().slice(0, 16);
+          }
+        }
+        
+        if (period.end_date) {
+          const endInput = form.querySelector('[name="end_date"]');
+          if (endInput) {
+            const endDate = new Date(period.end_date);
+            endInput.value = endDate.toISOString().slice(0, 16);
+          }
+        }
+        
+        if (period.is_active !== undefined) {
+          const activeCheckbox = form.querySelector('[name="is_active"]');
+          if (activeCheckbox) {
+            activeCheckbox.checked = period.is_active;
+          }
+        }
+        
+        modal.hidden = false;
+        backdrop.hidden = false;
+      }
+    } catch (error) {
+      console.error("Error opening registration period modal:", error);
+      // Still open modal even if fetch fails
+      const modal = document.querySelector('[data-modal="registration-period"]');
+      const backdrop = document.querySelector("[data-modal-backdrop]");
+      if (modal && backdrop) {
+        modal.hidden = false;
+        backdrop.hidden = false;
+      }
+    }
   }
 
   handleRandomize() {
@@ -2072,6 +2538,124 @@ class App {
       '<': 'kurang dari'
     };
     return labels[operator] || operator;
+  }
+
+  async handleRegistrationPeriod(form) {
+    this.resetFormState(form);
+    const formData = new FormData(form);
+    const startDate = formData.get("start_date");
+    const endDate = formData.get("end_date");
+    const isActive = formData.get("is_active") === "on";
+
+    if (!startDate || !endDate) {
+      this.showFormFeedback(form, "Tanggal mulai dan berakhir wajib diisi", true);
+      return;
+    }
+
+    const payload = {
+      start_date: new Date(startDate).toISOString(),
+      end_date: new Date(endDate).toISOString(),
+      is_active: isActive,
+    };
+
+    try {
+      this.toggleSubmitLoading(form, true);
+      const { setRegistrationPeriod } = await import("./services/adminService.js");
+      await setRegistrationPeriod(payload);
+      this.showToast("Periode pendaftaran berhasil disimpan ✅");
+      this.closeModal();
+      form.reset();
+    } catch (error) {
+      this.applyApiErrors(form, error);
+    } finally {
+      this.toggleSubmitLoading(form, false);
+    }
+  }
+
+  async handleRandomizeTeams(form) {
+    this.resetFormState(form);
+    const formData = new FormData(form);
+    const batchId = formData.get("batch_id")?.trim();
+    const teamSize = parseInt(formData.get("team_size")) || 5;
+    const respectLearningPath = formData.get("respect_learning_path") === "on";
+
+    if (!batchId) {
+      this.showFormFeedback(form, "Batch ID wajib diisi", true);
+      return;
+    }
+
+    const payload = {
+      batch_id: batchId,
+      team_size: teamSize,
+      respect_learning_path: respectLearningPath,
+    };
+
+    try {
+      this.toggleSubmitLoading(form, true);
+      const { randomizeTeams } = await import("./services/adminService.js");
+      const response = await randomizeTeams(payload);
+      this.showToast(`Randomize berhasil! ${response?.data?.teams_created || 0} tim telah dibuat ✅`);
+      this.closeModal();
+      form.reset();
+      this.router.loadRoute();
+    } catch (error) {
+      this.applyApiErrors(form, error);
+    } finally {
+      this.toggleSubmitLoading(form, false);
+    }
+  }
+
+  async handleUploadMembers(form) {
+    this.resetFormState(form);
+    const formData = new FormData(form);
+    const groupId = formData.get("group_id");
+    const memberIdsText = formData.get("member_ids")?.trim();
+
+    if (!groupId || !memberIdsText) {
+      this.showFormFeedback(form, "Group ID dan ID anggota wajib diisi", true);
+      return;
+    }
+
+    // Parse member IDs (support comma and newline separated)
+    const memberIds = memberIdsText
+      .split(/[,\n]/)
+      .map(id => id.trim())
+      .filter(id => id.length > 0);
+
+    if (memberIds.length === 0) {
+      this.showFormFeedback(form, "Minimal satu ID anggota harus diisi", true);
+      return;
+    }
+
+    const payload = {
+      member_source_ids: memberIds,
+    };
+
+    try {
+      this.toggleSubmitLoading(form, true);
+      const { uploadTeamMembers } = await import("./services/adminService.js");
+      await uploadTeamMembers(groupId, payload);
+      this.showToast(`${memberIds.length} anggota berhasil ditambahkan ✅`);
+      this.closeModal();
+      form.reset();
+      this.router.loadRoute();
+    } catch (error) {
+      this.applyApiErrors(form, error);
+    } finally {
+      this.toggleSubmitLoading(form, false);
+    }
+  }
+
+  openUploadMembersModal(groupId) {
+    const modal = document.querySelector('[data-modal="upload-members"]');
+    const backdrop = document.querySelector("[data-modal-backdrop]");
+    const form = modal?.querySelector('form');
+    
+    if (modal && backdrop && form) {
+      form.querySelector('[name="group_id"]').value = groupId;
+      modal.hidden = false;
+      backdrop.hidden = false;
+    }
   }
 }
 
