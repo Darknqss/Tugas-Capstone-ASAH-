@@ -225,3 +225,12 @@ export async function uploadTeamMembers(groupId, payload) {
   return handleResponse(response);
 }
 
+// Get Timeline
+export async function getTimeline() {
+  const response = await fetch(`${API_BASE_URL}/user/timeline`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(response);
+}
+

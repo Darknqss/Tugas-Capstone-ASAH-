@@ -100,7 +100,6 @@
 .timeline-status--active {
   background-color: #fff3cd;
   color: #856404;
-  animation: pulse 2s infinite;
 }
 
 .timeline-status--completed {
@@ -267,7 +266,6 @@
 .timeline-item.timeline-status--active .timeline-marker-dot {
   background-color: #ffc107;
   box-shadow: 0 0 0 3px #ffc107;
-  animation: pulse-dot 2s infinite;
 }
 
 .timeline-item.timeline-status--completed .timeline-content {
