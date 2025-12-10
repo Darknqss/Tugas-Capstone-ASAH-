@@ -79,11 +79,20 @@ export class Router {
                     return this.loadRoute();
                 }
                 // 3. Strict Role Redirection
-                if (isAdmin && (path === '/dashboard' || path === '/team-information' || path === '/dokumen-timeline' || path === '/individual-worksheet')) {
-                    // Admin trying to access Student pages -> Redirect to Admin Dashboard
-                    path = '/admin-dashboard';
-                    window.history.replaceState({}, '', path);
-                    return this.loadRoute();
+                if (isAdmin) {
+                    // Map Student paths to Admin paths associated with them
+                    if (path === '/dashboard') path = '/admin-dashboard';
+                    else if (path === '/team-information') path = '/admin-team-information';
+                    else if (path === '/dokumen-timeline') path = '/admin-dokumen-timeline';
+                    else if (path === '/individual-worksheet') path = '/admin-individual-worksheet';
+                    else if (path === '/360-feedback') path = '/admin-360-feedback';
+
+                    // If path was changed, update history
+                    if (path !== window.location.pathname) {
+                        window.history.replaceState({}, '', path);
+                        // Recursively load the new route to ensure correct component
+                        return this.loadRoute();
+                    }
                 } else if (!isAdmin && (path === '/admin-dashboard' || path.startsWith('/admin-'))) {
                     // Student trying to access Admin pages -> Redirect to Student Dashboard
                     path = '/dashboard';
@@ -103,16 +112,35 @@ export class Router {
             path = '/' + path;
         }
 
+        console.log(`[Router] Loading path: ${path}`);
+
         // Try to get component for current path, with fallbacks
         let component = this.routes[path];
         
         // Fallback logic
         if (!component) {
-            if (path === '/') {
-                // If landing page route exists, use it
-                component = this.routes['/'];
+            if (path === '/' || path === '') {
+                try {
+                    const session = JSON.parse(localStorage.getItem('capstone-auth-session') || '{}');
+                    const hasUser = session?.user;
+                    const role = session?.user?.role;
+                    const isAdmin = role?.toLowerCase() === 'admin';
+                    
+                    if (hasUser) {
+                        component = isAdmin ? this.routes['/admin-dashboard'] : this.routes['/dashboard'];
+                        if (isAdmin && window.location.pathname !== '/admin-dashboard') {
+                            window.history.replaceState({}, '', '/admin-dashboard');
+                        } else if (!isAdmin && window.location.pathname !== '/dashboard') {
+                            window.history.replaceState({}, '', '/dashboard');
+                        }
+                    } else {
+                        component = this.routes['/'];
+                    }
+                } catch (e) {
+                    component = this.routes['/'];
+                }
             } else {
-                // Try dashboard routes as fallback
+                // Try dashboard routes as fallback for other paths
                 try {
                     const session = JSON.parse(localStorage.getItem('capstone-auth-session') || '{}');
                     const hasUser = session?.user;
@@ -129,14 +157,16 @@ export class Router {
                 }
             }
         }
-        
+
         if (component) {
+            console.log(`[Router] Component found for ${path}`);
             // Pastikan URL tidak memiliki hash sebelum render
             if (window.location.hash) {
                 window.history.replaceState({}, '', window.location.pathname + window.location.search);
             }
             this.render(component);
         } else {
+            console.error(`[Router] 404 for ${path}`);
             // Fallback untuk 404
             const app = document.getElementById('app');
             app.innerHTML = '<div style="text-align:center;padding:40px;"><h2>404 - Halaman tidak ditemukan</h2><a href="/" data-link>Kembali ke Halaman Utama</a></div>';
@@ -152,20 +182,21 @@ export class Router {
 
         app.innerHTML = '<div style="text-align:center;padding:40px;">Memuat...</div>';
 
+        app.classList.add('fade-in');
+
         try {
             const result = component();
             // Check if component returns a Promise
             if (result && typeof result.then === 'function') {
-                app.innerHTML = await result;
+                const html = await result;
+                app.innerHTML = html;
             } else {
                 app.innerHTML = result;
             }
         } catch (error) {
             console.error('Error rendering component:', error);
-            app.innerHTML = '<div style="text-align:center;padding:40px;color:red;">Error loading page</div>';
+            app.innerHTML = '<div style="text-align: center; padding: 50px; color: red;">Error loading page</div>';
         }
-
-        app.classList.add('fade-in');
 
         // Remove animation class after animation completes
         setTimeout(() => {
