@@ -1,4 +1,4 @@
-import { getDocs, getUseCases } from "../services/userService.js";
+import { getDocs } from "../services/userService.js";
 import { getMyTeam } from "../services/groupService.js";
 
 export async function TeamInfoPage() {
@@ -8,35 +8,7 @@ export async function TeamInfoPage() {
     
     let playbookUrl = defaultPlaybookUrl;
     let useCaseUrl = defaultUseCaseUrl;
-    let useCasesOptions = "";
     let teamData = null;
-
-    // Fetch Use Cases - Independent error handling
-    try {
-        const useCasesResponse = await getUseCases();
-        console.log("Use Cases Response:", useCasesResponse); // Debug log
-        const useCases = useCasesResponse?.data || [];
-        console.log("Use Cases Data:", useCases); // Debug log
-        
-        // Build use case options
-        // Menggunakan capstone_use_case_source_id sebagai value sesuai API contract
-        if (useCases && useCases.length > 0) {
-            useCasesOptions = useCases.map(uc => {
-                // Gunakan capstone_use_case_source_id sebagai value (sesuai API contract)
-                const sourceId = uc.capstone_use_case_source_id || uc.id || '';
-                // Format display: "Nama Use Case - Company (Source ID)"
-                const displayName = `${uc.name || 'N/A'}${uc.company ? ` - ${uc.company}` : ''}${sourceId ? ` (${sourceId})` : ''}`;
-                return `<option value="${sourceId}">${displayName}</option>`;
-            }).join('');
-            console.log("Use Cases Options Generated:", useCasesOptions.length, "characters"); // Debug log
-        } else {
-            console.warn("No use cases found in response");
-            useCasesOptions = '<option value="" disabled>Belum ada use case tersedia</option>';
-        }
-    } catch (error) {
-        console.error("Error fetching use cases:", error);
-        useCasesOptions = '<option value="" disabled>Gagal memuat use case. Silakan refresh halaman.</option>';
-    }
 
     // Fetch Docs - Independent error handling
     try {
@@ -125,44 +97,6 @@ export async function TeamInfoPage() {
             </div>
 
             <div class="dashboard-grid" style="grid-template-columns: 1fr;">
-                ${!teamData || !teamData.id ? `
-                <div class="card">
-                    <h2 class="card-title">Informasi Tim</h2>
-                    <div class="registration-row">
-                        <span class="registration-label">Registration</span>
-                        <button class="btn-registration" data-registration-toggle>Registration Here</button>
-                    </div>
-                </div>
-
-                <div class="card registration-form-card" data-registration-panel hidden>
-                    <h2 class="card-title">Registrasi Tim</h2>
-                    <p class="section-description" style="margin-bottom:16px;">Isi detail tim Anda untuk melanjutkan proses capstone.</p>
-                    <form class="team-registration-form" data-registration-form>
-                        <div class="form-row">
-                            <label for="team-name">Nama Tim</label>
-                            <input type="text" id="team-name" name="team_name" placeholder="Contoh: GEMBROT SQUAD" required />
-                        </div>
-                        <div class="form-row">
-                            <label for="use-case">Use Case</label>
-                            <select id="use-case" name="use_case_source_id" required>
-                                <option value="" disabled selected>Pilih use case</option>
-                                ${useCasesOptions}
-                            </select>
-                            <p class="form-hint">Pilih use case yang akan dikerjakan tim Anda</p>
-                        </div>
-                        <div class="form-row">
-                            <label for="member-ids">ID Anggota Tim (pisahkan dengan koma)</label>
-                            <textarea id="member-ids" name="member_source_ids" rows="3" placeholder="FUI0001, FUI0002, FUI0003" required></textarea>
-                            <p class="form-hint">Masukkan ID anggota tim, pisahkan dengan koma. Contoh: FUI0001, FUI0002, FUI0003</p>
-                        </div>
-                        <div class="form-actions">
-                            <button type="submit" class="btn btn-primary">Daftarkan Tim</button>
-                        </div>
-                    </form>
-                    <div class="registration-summary" data-registration-summary hidden></div>
-                </div>
-                ` : ''}
-
                 <div class="card">
                     <h2 class="card-title">Anggota Tim</h2>
                     ${teamMembersHtml}

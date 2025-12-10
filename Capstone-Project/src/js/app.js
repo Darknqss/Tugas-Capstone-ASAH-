@@ -46,6 +46,7 @@ class App {
     this.profilePanel = null;
     this.profileBackdrop = null;
     this.pendingRegistrationOpen = false;
+    this.autoValidationInterval = null;
     this.init();
   }
 
@@ -70,6 +71,12 @@ class App {
         this.attachFormHandlers();
         // Setup team registration composition validation
         this.setupTeamRegistrationValidation();
+        // Setup auto validation if deadline is set
+        const deadlineEnabled = localStorage.getItem('worksheet-deadline-enabled') === 'true';
+        const deadline = localStorage.getItem('worksheet-deadline');
+        if (deadlineEnabled && deadline && window.location.pathname === '/admin-individual-worksheet') {
+          this.setupAutoValidation(deadline);
+        }
         // Pastikan URL tidak memiliki hash setelah route rendered
         if (window.location.hash) {
           window.history.replaceState({}, '', window.location.pathname + window.location.search);
@@ -205,6 +212,11 @@ class App {
         if (form.matches('[data-form="validate-worksheet"]')) {
           event.preventDefault();
           this.handleValidateWorksheet(form);
+          return;
+        }
+        if (form.matches('[data-form="worksheet-deadline"]')) {
+          event.preventDefault();
+          this.handleWorksheetDeadline(form);
           return;
         }
         if (form.matches('[data-form="edit-member"]')) {
@@ -410,6 +422,42 @@ class App {
         this.openValidateWorksheetModal(worksheetId);
       }
 
+      const manualValidateAllBtn = event.target.closest("[data-manual-validate-all]");
+      if (manualValidateAllBtn) {
+        event.preventDefault();
+        this.handleManualValidateAll();
+      }
+
+      const exportWorksheetsBtn = event.target.closest("[data-export-worksheets]");
+      if (exportWorksheetsBtn) {
+        event.preventDefault();
+        this.exportWorksheetsData();
+      }
+
+      const toggleDeadlineSettings = event.target.closest("[data-toggle-deadline-settings]");
+      if (toggleDeadlineSettings) {
+        event.preventDefault();
+        const panel = document.querySelector("[data-deadline-settings-panel]");
+        if (panel) {
+          const isHidden = panel.hidden || panel.style.display === 'none';
+          panel.hidden = !isHidden;
+          panel.style.display = isHidden ? 'block' : 'none';
+          toggleDeadlineSettings.textContent = isHidden ? 'Sembunyikan' : 'Tampilkan';
+        }
+      }
+
+      const cancelDeadlineBtn = event.target.closest("[data-cancel-deadline]");
+      if (cancelDeadlineBtn) {
+        event.preventDefault();
+        const panel = document.querySelector("[data-deadline-settings-panel]");
+        if (panel) {
+          panel.hidden = true;
+          panel.style.display = 'none';
+          const toggleBtn = document.querySelector("[data-toggle-deadline-settings]");
+          if (toggleBtn) toggleBtn.textContent = 'Tampilkan';
+        }
+      }
+
       const exportFeedbackBtn = event.target.closest("[data-export-feedback]");
       if (exportFeedbackBtn) {
         event.preventDefault();
@@ -449,6 +497,35 @@ class App {
 
       if (event.target.matches("[data-filter-status]")) {
         this.handleFilterGroups(event.target.value);
+      }
+
+      // Handle worksheet filter
+      if (event.target.matches("[data-worksheet-filter]")) {
+        const status = event.target.value;
+        const url = new URL(window.location);
+        if (status) {
+          url.searchParams.set('status', status);
+        } else {
+          url.searchParams.delete('status');
+        }
+        window.history.pushState({}, '', url);
+        this.router.loadRoute();
+      }
+
+      // Handle select all worksheets
+      if (event.target.matches("[data-select-all-worksheets]")) {
+        const checkboxes = document.querySelectorAll('.worksheet-checkbox');
+        checkboxes.forEach(cb => {
+          cb.checked = event.target.checked;
+        });
+      }
+
+      // Handle auto validate enabled checkbox
+      if (event.target.matches('[name="auto_validate_enabled"]')) {
+        const deadlineInput = document.getElementById('worksheet-deadline-input');
+        if (deadlineInput) {
+          deadlineInput.required = event.target.checked;
+        }
       }
     });
   }
@@ -2113,6 +2190,233 @@ class App {
       this.applyApiErrors(form, error);
     } finally {
       this.toggleSubmitLoading(form, false);
+    }
+  }
+
+  async handleWorksheetDeadline(form) {
+    this.resetFormState(form);
+    const formData = new FormData(form);
+    const deadline = formData.get("deadline");
+    const enabled = formData.get("auto_validate_enabled") === "on";
+
+    if (enabled && !deadline) {
+      this.showFormFeedback(form, "Deadline wajib diisi jika validasi otomatis diaktifkan", true);
+      return;
+    }
+
+    try {
+      // Simpan ke localStorage
+      if (deadline) {
+        localStorage.setItem('worksheet-deadline', deadline);
+      }
+      localStorage.setItem('worksheet-deadline-enabled', enabled.toString());
+      
+      // Setup auto validation
+      if (enabled && deadline) {
+        this.setupAutoValidation(deadline);
+        this.showToast("Pengaturan deadline validasi otomatis berhasil disimpan ✅");
+      } else {
+        // Clear interval jika disabled
+        if (this.autoValidationInterval) {
+          clearInterval(this.autoValidationInterval);
+          this.autoValidationInterval = null;
+        }
+        this.showToast("Validasi otomatis dinonaktifkan");
+      }
+      
+      // Reload untuk update UI
+      this.router.loadRoute();
+    } catch (error) {
+      this.showFormFeedback(form, "Gagal menyimpan pengaturan deadline", true);
+    }
+  }
+
+  setupAutoValidation(deadlineStr) {
+    // Clear existing interval
+    if (this.autoValidationInterval) {
+      clearInterval(this.autoValidationInterval);
+    }
+
+    const deadline = new Date(deadlineStr);
+    const now = new Date();
+    
+    if (deadline <= now) {
+      this.showToast("Deadline harus di masa depan", true);
+      return;
+    }
+
+    // Calculate time until deadline
+    const timeUntilDeadline = deadline.getTime() - now.getTime();
+    
+    // Set interval to check every minute
+    this.autoValidationInterval = setInterval(async () => {
+      const currentTime = new Date();
+      if (currentTime >= deadline) {
+        // Deadline reached, run auto validation
+        await this.runAutoValidation();
+        // Clear interval after running
+        if (this.autoValidationInterval) {
+          clearInterval(this.autoValidationInterval);
+          this.autoValidationInterval = null;
+        }
+      }
+    }, 60000); // Check every minute
+
+    this.showToast(`Validasi otomatis akan berjalan pada ${deadline.toLocaleString('id-ID')} WIB`);
+  }
+
+  async runAutoValidation() {
+    try {
+      this.showToast("Memulai validasi otomatis...", false);
+      const { listAllWorksheets, validateWorksheet } = await import("./services/adminService.js");
+      
+      // Get all submitted worksheets
+      const response = await listAllWorksheets('submitted');
+      const worksheets = response?.data || [];
+      
+      if (worksheets.length === 0) {
+        this.showToast("Tidak ada worksheet yang perlu divalidasi");
+        return;
+      }
+
+      // Validate all submitted worksheets as "approved" by default
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (const ws of worksheets) {
+        try {
+          await validateWorksheet(ws.id, {
+            status: 'approved',
+            feedback: 'Validasi otomatis berdasarkan deadline'
+          });
+          successCount++;
+        } catch (error) {
+          console.error(`Error validating worksheet ${ws.id}:`, error);
+          errorCount++;
+        }
+      }
+
+      this.showToast(`Validasi otomatis selesai: ${successCount} berhasil, ${errorCount} gagal`);
+      
+      // Reload page to show updated data
+      this.router.loadRoute();
+    } catch (error) {
+      console.error("Error running auto validation:", error);
+      this.showToast("Gagal menjalankan validasi otomatis", true);
+    }
+  }
+
+  async handleManualValidateAll() {
+    const checkboxes = document.querySelectorAll('.worksheet-checkbox:checked');
+    const worksheetIds = Array.from(checkboxes).map(cb => cb.dataset.worksheetId);
+
+    if (worksheetIds.length === 0) {
+      this.showToast("Pilih minimal satu worksheet untuk divalidasi", true);
+      return;
+    }
+
+    if (!confirm(`Apakah Anda yakin ingin memvalidasi ${worksheetIds.length} worksheet sekaligus?`)) {
+      return;
+    }
+
+    try {
+      this.showToast("Memproses validasi...", false);
+      const { validateWorksheet } = await import("./services/adminService.js");
+      
+      // Validate each worksheet individually since bulk endpoint may not exist
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (const worksheetId of worksheetIds) {
+        try {
+          await validateWorksheet(worksheetId, {
+            status: 'approved',
+            feedback: 'Validasi manual oleh admin'
+          });
+          successCount++;
+        } catch (error) {
+          console.error(`Error validating worksheet ${worksheetId}:`, error);
+          errorCount++;
+        }
+      }
+
+      if (successCount > 0) {
+        this.showToast(`${successCount} worksheet berhasil divalidasi${errorCount > 0 ? `, ${errorCount} gagal` : ''} ✅`);
+        this.router.loadRoute();
+      } else {
+        this.showToast("Gagal memvalidasi worksheet", true);
+      }
+    } catch (error) {
+      console.error("Error bulk validating worksheets:", error);
+      this.showToast("Gagal memvalidasi worksheet", true);
+    }
+  }
+
+  async exportWorksheetsData() {
+    try {
+      this.showToast("Menyiapkan export data...", false);
+      
+      // Fetch all worksheets directly from the existing API
+      const { listAllWorksheets } = await import("./services/adminService.js");
+      const wsResponse = await listAllWorksheets();
+      const worksheets = wsResponse?.data || [];
+
+      if (worksheets.length === 0) {
+        this.showToast("Tidak ada data untuk diekspor", true);
+        return;
+      }
+
+      // Convert to CSV
+      const headers = ['Nama Peserta', 'Email', 'Periode Mulai', 'Periode Akhir', 'Aktivitas', 'Status', 'Feedback', 'Tanggal Submit'];
+      const rows = worksheets.map(ws => {
+        // Escape quotes and replace newlines in text fields
+        const escapeCSV = (text) => {
+          if (!text) return 'N/A';
+          return String(text)
+            .replace(/"/g, '""') // Escape double quotes
+            .replace(/\n/g, ' ') // Replace newlines with space
+            .replace(/\r/g, ' '); // Replace carriage returns
+        };
+
+        return [
+          escapeCSV(ws.users?.name),
+          escapeCSV(ws.users?.email),
+          ws.period_start || 'N/A',
+          ws.period_end || 'N/A',
+          escapeCSV(ws.activity_description),
+          ws.status || 'N/A',
+          escapeCSV(ws.feedback),
+          ws.submitted_at || 'N/A'
+        ];
+      });
+
+      const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+      ].join('\n');
+
+      // Add BOM for Excel compatibility (UTF-8)
+      const BOM = '\uFEFF';
+      const csvWithBOM = BOM + csvContent;
+
+      // Create download link
+      const blob = new Blob([csvWithBOM], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `worksheet-validasi-${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up the URL object
+      URL.revokeObjectURL(url);
+
+      this.showToast("Data berhasil diekspor ke spreadsheet ✅");
+    } catch (error) {
+      console.error("Error exporting worksheets:", error);
+      this.showToast("Gagal mengekspor data. Pastikan data worksheet tersedia.", true);
     }
   }
 

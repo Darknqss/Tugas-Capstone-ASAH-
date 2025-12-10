@@ -127,6 +127,9 @@ export async function validateWorksheet(worksheetId, payload) {
   return handleResponse(response);
 }
 
+// Note: Export and bulk validate are handled client-side
+// since the backend endpoints may not be available
+
 // Admin Feedback
 export async function exportFeedbackData() {
   const response = await fetch(`${API_BASE_URL}/admin/feedback/export`, {

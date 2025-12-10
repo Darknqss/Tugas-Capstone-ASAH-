@@ -39,8 +39,67 @@ export async function AdminWorksheetPage() {
               </div>
            </div>
            <div class="toolbar-right">
-             <!-- Optional Export -->
+             <button class="btn btn-outline btn-sm" data-manual-validate-all style="margin-right: 8px;">
+               ⚡ Validasi Manual Semua
+             </button>
+             <button class="btn btn-primary btn-sm" data-export-worksheets>
+               📊 Export Spreadsheet
+             </button>
            </div>
+        </div>
+
+        <!-- Deadline Settings Card -->
+        <div class="card" style="margin-bottom: 20px;">
+          <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h3 class="card-title" style="margin: 0;">⚙️ Pengaturan Validasi Otomatis</h3>
+            <button class="btn btn-sm btn-outline" data-toggle-deadline-settings>
+              ${localStorage.getItem('worksheet-deadline-enabled') === 'true' ? 'Sembunyikan' : 'Tampilkan'}
+            </button>
+          </div>
+          <div class="card-body" data-deadline-settings-panel ${localStorage.getItem('worksheet-deadline-enabled') === 'true' ? '' : 'hidden'} style="display: ${localStorage.getItem('worksheet-deadline-enabled') === 'true' ? 'block' : 'none'};">
+            <form data-form="worksheet-deadline">
+              <div class="form-group">
+                <label>Deadline Validasi Otomatis</label>
+                <input 
+                  type="datetime-local" 
+                  name="deadline" 
+                  value="${localStorage.getItem('worksheet-deadline') || ''}" 
+                  class="form-control"
+                  id="worksheet-deadline-input"
+                />
+                <small class="form-text text-muted">
+                  Validasi akan berjalan secara otomatis pada waktu yang ditentukan. 
+                  Contoh: 20 Oktober 2025 pukul 17:00 WIB
+                </small>
+              </div>
+              <div class="form-group">
+                <label>
+                  <input 
+                    type="checkbox" 
+                    name="auto_validate_enabled" 
+                    ${localStorage.getItem('worksheet-deadline-enabled') === 'true' ? 'checked' : ''}
+                  />
+                  Aktifkan Validasi Otomatis
+                </label>
+              </div>
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Simpan Pengaturan</button>
+                <button type="button" class="btn btn-outline" data-cancel-deadline>Batal</button>
+              </div>
+              ${localStorage.getItem('worksheet-deadline') ? `
+                <div class="alert alert-info" style="margin-top: 12px; padding: 12px; background: #e7f3ff; border-radius: 6px;">
+                  <strong>Deadline Aktif:</strong> ${new Date(localStorage.getItem('worksheet-deadline')).toLocaleString('id-ID', { 
+                    day: 'numeric', 
+                    month: 'long', 
+                    year: 'numeric', 
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    timeZone: 'Asia/Jakarta'
+                  })} WIB
+                </div>
+              ` : ''}
+            </form>
+          </div>
         </div>
 
         <!-- Table Card -->
@@ -61,6 +120,9 @@ export async function AdminWorksheetPage() {
               <table class="modern-table">
                 <thead>
                   <tr>
+                    <th style="width: 40px;">
+                      <input type="checkbox" id="select-all-worksheets" data-select-all-worksheets />
+                    </th>
                     <th>Peserta</th>
                     <th>Periode</th>
                     <th>Aktivitas</th>
@@ -71,6 +133,11 @@ export async function AdminWorksheetPage() {
                 <tbody>
                   ${worksheets.map(ws => `
                     <tr>
+                      <td>
+                        ${ws.status === 'submitted' ? `
+                          <input type="checkbox" class="worksheet-checkbox" data-worksheet-id="${ws.id}" />
+                        ` : ''}
+                      </td>
                       <td>
                         <div class="fw-bold">${ws.users?.name || 'Unknown'}</div>
                         <div class="text-xs text-muted">${ws.users?.email || 'N/A'}</div>
