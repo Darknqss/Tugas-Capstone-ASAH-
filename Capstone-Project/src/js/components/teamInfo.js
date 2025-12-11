@@ -48,9 +48,22 @@ export async function TeamInfoPage() {
         teamData = null;
     }
     
+    // Check if user has a team
+    const hasTeam = teamData?.members && teamData.members.length > 0;
+    
+    // Render registration component (always show above Anggota Tim)
+    const registrationHtml = `
+        <div class="card">
+            <div class="registration-row">
+                <span class="registration-label">Regis Tim ini</span>
+                <a href="/team-registration" class="btn-registration" data-link>Registration Here</a>
+            </div>
+        </div>
+    `;
+
     // Render team members
     let teamMembersHtml = "";
-    if (teamData?.members && teamData.members.length > 0) {
+    if (hasTeam) {
         teamMembersHtml = `
             <div class="team-members-list">
                 <div class="team-info-header">
@@ -97,6 +110,8 @@ export async function TeamInfoPage() {
             </div>
 
             <div class="dashboard-grid" style="grid-template-columns: 1fr;">
+                ${registrationHtml}
+                
                 <div class="card">
                     <h2 class="card-title">Anggota Tim</h2>
                     ${teamMembersHtml}

@@ -15,6 +15,10 @@
   --text-dark: #212529;
   --border-radius: 8px;
   --nav-gray: #999999;
+  --danger-color: #e43737;
+  --border-color: #e9ecef;
+  --bg-light: #f8f9fa;
+  --text-light: #6c757d;
 }
 
 body {
@@ -157,6 +161,12 @@ button {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  position: relative;
+  z-index: 1;
 }
 
 .btn-outline {

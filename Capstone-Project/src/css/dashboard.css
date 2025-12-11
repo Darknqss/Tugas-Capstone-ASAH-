@@ -76,10 +76,14 @@
   font-size: 13px;
   cursor: pointer;
   transition: background-color 0.3s;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
 }
 
 .btn-registration:hover {
   background-color: var(--primary-color);
+  color: var(--white);
 }
 
 /* Empty States */

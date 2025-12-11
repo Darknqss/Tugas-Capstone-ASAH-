@@ -232,14 +232,13 @@ export async function AdminTeamInfoPage() {
                     <th>Batch ID</th>
                     <th>Status</th>
                     <th>Anggota</th>
-                    <th>Proyek</th>
                     <th>Aksi</th>
                   </tr>
                 </thead>
                 <tbody data-groups-list>
                   ${groupsData.length === 0 && !isLoading
                     ? `<tr>
-                        <td colspan="6" class="empty-cell" style="text-align:center; padding: 60px 40px;">
+                        <td colspan="5" class="empty-cell" style="text-align:center; padding: 60px 40px;">
                           <div style="font-size: 64px; margin-bottom: 16px;">📋</div>
                           <div style="font-size: 16px; color: #6c757d; font-weight: 600; margin-bottom: 8px;">Belum ada tim terdaftar</div>
                           <div style="font-size: 14px; color: #999; margin-bottom: 16px;">Klik "Buat Tim Baru" untuk menambahkan tim pertama</div>
@@ -291,11 +290,6 @@ export async function AdminTeamInfoPage() {
                                 <span style="font-weight: 600; color: var(--text-dark);">${memberCount}</span>
                                 <span style="font-size: 13px; color: #6c757d;">anggota</span>
                               </div>
-                            </td>
-                            <td>
-                              <span class="badge-pill ${projectStatus === 'in_progress' ? 'status-in_progress' : ''}" style="text-transform: capitalize;">
-                                ${projectStatus.replace(/_/g, ' ')}
-                              </span>
                             </td>
                             <td>
                               <div style="display: flex; gap: 8px;">
