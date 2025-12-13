@@ -23,7 +23,7 @@ export async function AdminTeamInfoPage() {
     console.log("[AdminTeamInfo] Fetching groups data...");
     const response = await listAllGroups();
     console.log("[AdminTeamInfo] API Response:", response);
-    
+
     // Handle different response structures
     // Try response.data first, then response.groups, then response directly, or empty array
     if (response?.data && Array.isArray(response.data)) {
@@ -41,6 +41,36 @@ export async function AdminTeamInfoPage() {
     }
 
     // Normalize field names - handle different API field naming conventions
+    // Fetch detailed info for each group to get member count (N+1 query workaround)
+    console.log("[AdminTeamInfo] Fetching detailed info for " + groupsData.length + " groups...");
+
+    // Import getGroupById locally to avoid circular dependency issues if any
+    const { getGroupById } = await import("../services/adminService.js");
+
+    // Enrich groups data with details
+    const enrichedGroups = await Promise.all(groupsData.map(async (simpleGroup) => {
+      try {
+        const groupId = simpleGroup.group_id || simpleGroup.id || simpleGroup.groupId;
+        if (!groupId) return simpleGroup;
+
+        const detailResponse = await getGroupById(groupId);
+        const detail = detailResponse?.data || detailResponse || {};
+
+        if (simpleGroup.group_name === "Generasi Jaya" || simpleGroup.group_name?.includes("Generasi")) {
+          console.log("[DEBUG] Generasi Jaya Raw Detail:", detail);
+        }
+
+        // Merge simple data with detailed data (prefer detail)
+        return { ...simpleGroup, ...detail };
+      } catch (err) {
+        // Fallback to simple group data if detail fetch fails (e.g. 500 error)
+        console.warn(`[AdminTeamInfo] Failed to fetch detail for group ${simpleGroup.group_id}. Using basic data.`);
+        return simpleGroup;
+      }
+    }));
+
+    groupsData = enrichedGroups;
+
     groupsData = groupsData.map(group => {
       // Map different possible field names to consistent ones
       // Handle members field - could be members, group_members, users, or nested structure
@@ -54,7 +84,33 @@ export async function AdminTeamInfoPage() {
       } else if (group.member_list && Array.isArray(group.member_list)) {
         members = group.member_list;
       }
-      
+
+      // Helper to extract use case info
+      // Helper to extract use case info
+      let ucName = null;
+      let ucCompany = null;
+      let ucSourceId = group.use_case_source_id || group.use_case_id || group.use_case_ref || null;
+
+      // 1. Try to get from nested object (Preferred)
+      if (group.use_case && typeof group.use_case === 'object') {
+        ucName = group.use_case.name || group.use_case.title || group.use_case.use_case_name || null;
+        ucCompany = group.use_case.company || group.use_case.company_name || group.use_case.use_case_company || null;
+        ucSourceId = group.use_case.capstone_use_case_source_id || group.use_case.source_id || ucSourceId;
+      } else if (group.useCase && typeof group.useCase === 'object') {
+        ucName = group.useCase.name || group.useCase.title || group.useCase.useCaseName || null;
+        ucCompany = group.useCase.company || group.useCase.companyName || group.useCase.useCaseCompany || null;
+        ucSourceId = group.useCase.capstoneUseCaseSourceId || ucSourceId;
+      }
+
+      // 2. Fallback to direct properties if still null, but ONLY if they are strings
+      if (!ucName && typeof group.use_case_name === 'string') ucName = group.use_case_name;
+      if (!ucName && typeof group.use_case === 'string') ucName = group.use_case;
+
+      if (!ucCompany && typeof group.use_case_company === 'string') ucCompany = group.use_case_company;
+
+      // 3. Final safety check: if ucName is somehow still an object, assume it failed and clear it
+      if (typeof ucName === 'object') ucName = null;
+
       return {
         group_id: group.group_id || group.id || group.groupId || null,
         group_name: group.group_name || group.name || group.groupName || "-",
@@ -62,14 +118,14 @@ export async function AdminTeamInfoPage() {
         status: group.status || group.group_status || "pending",
         project_status: group.project_status || group.projectStatus || "not_started",
         members: members, // Use normalized members array
-        use_case_source_id: group.use_case_source_id || group.use_case_id || group.use_case_ref || null,
-        use_case_name: group.use_case_name || group.use_case || null,
-        use_case_company: group.use_case_company || null,
+        use_case_source_id: ucSourceId,
+        use_case_name: ucName,
+        use_case_company: ucCompany,
         description: group.description || group.desc || null,
         ...group // Keep all other fields
       };
     });
-    
+
     console.log("[AdminTeamInfo] Groups with members count:", groupsData.map(g => ({
       name: g.group_name,
       members_count: g.members?.length || 0,
@@ -79,14 +135,14 @@ export async function AdminTeamInfoPage() {
     console.log("[AdminTeamInfo] Normalized groups data:", groupsData);
 
     if (selectedGroupId) {
-      selectedGroup = groupsData.find((g) => 
-        g.group_id === selectedGroupId || 
+      selectedGroup = groupsData.find((g) =>
+        g.group_id === selectedGroupId ||
         g.id === selectedGroupId ||
         String(g.group_id) === String(selectedGroupId)
       );
       console.log("[AdminTeamInfo] Selected group:", selectedGroup);
     }
-    
+
     isLoading = false;
   } catch (error) {
     console.error("[AdminTeamInfo] Error fetching groups:", error);
@@ -97,7 +153,7 @@ export async function AdminTeamInfoPage() {
     });
     isLoading = false;
     errorMessage = error?.message || error?.details?.message || "Gagal memuat data tim. Silakan refresh halaman.";
-    
+
     // Show more detailed error if available
     if (error?.status === 401) {
       errorMessage = "Sesi Anda telah berakhir. Silakan login kembali.";
@@ -180,10 +236,11 @@ export async function AdminTeamInfoPage() {
             <span>📥</span>
             <span>Ekspor Data Tim</span>
           </button>
-          <button class="btn-secondary-icon" data-admin-action="randomize-teams" style="display: flex; align-items: center; gap: 8px;">
+          
+          <a href="/admin-unassigned-students" class="btn-secondary-icon" data-link style="display: flex; align-items: center; gap: 8px; text-decoration: none; color: inherit; margin-left: auto;">
             <span>🎲</span>
-            <span>Randomize Peserta</span>
-          </button>
+            <span>Randomize & Unassigned</span>
+          </a>
         </div>
 
         <!-- Filter & Search Bar -->
@@ -198,7 +255,7 @@ export async function AdminTeamInfoPage() {
             </div>
             <select class="filter-select-clean" data-filter-status>
               <option value="">Semua Status</option>
-              <option value="pending">PENDING_VALIDATION</option>
+              <option value="pending_validation">PENDING_VALIDATION</option>
               <option value="accepted">ACCEPTED</option>
               <option value="rejected">REJECTED</option>
               <option value="draft">DRAFT</option>
@@ -237,7 +294,7 @@ export async function AdminTeamInfoPage() {
                 </thead>
                 <tbody data-groups-list>
                   ${groupsData.length === 0 && !isLoading
-                    ? `<tr>
+        ? `<tr>
                         <td colspan="5" class="empty-cell" style="text-align:center; padding: 60px 40px;">
                           <div style="font-size: 64px; margin-bottom: 16px;">📋</div>
                           <div style="font-size: 16px; color: #6c757d; font-weight: 600; margin-bottom: 8px;">Belum ada tim terdaftar</div>
@@ -245,27 +302,28 @@ export async function AdminTeamInfoPage() {
                           ${errorMessage ? `<div style="font-size: 12px; color: #c33; padding: 8px; background: #fee; border-radius: 4px; display: inline-block;">⚠️ ${errorMessage}</div>` : ''}
                         </td>
                       </tr>`
-                    : groupsData.map((group) => {
-                        // Ensure we use normalized fields
-                        const groupId = group.group_id || group.id || group.groupId || null;
-                        const groupName = group.group_name || group.name || group.groupName || "-";
-                        const batchId = group.batch_id || group.batchId || "-";
-                        const status = (group.status || 'pending').toLowerCase();
-                        const projectStatus = (group.project_status || 'not_started').toLowerCase();
-                        
-                        // Calculate member count - ensure we use the normalized members array
-                        const membersArray = group.members || [];
-                        const memberCount = Array.isArray(membersArray) ? membersArray.length : 0;
-                        
-                        console.log(`[AdminTeamInfo] Group ${groupName}: ${memberCount} members`, membersArray);
-                        
-                        // Skip rendering if no valid group_id
-                        if (!groupId) {
-                          console.warn("[AdminTeamInfo] Group without ID:", group);
-                          return '';
-                        }
-                        
-                        return `
+        : groupsData.map((group) => {
+          // Ensure we use normalized fields
+          const groupId = group.group_id || group.id || group.groupId || null;
+          const groupName = group.group_name || group.name || group.groupName || "-";
+          const batchId = group.batch_id || group.batchId || "-";
+          const status = (group.status || 'pending').toLowerCase();
+          const projectStatus = (group.project_status || 'not_started').toLowerCase();
+
+          // Calculate member count - ensure we use the normalized members array
+          const rawMembers = group.members || group.group_members || group.users || [];
+          const membersArray = Array.isArray(rawMembers) ? rawMembers : [];
+          const memberCount = membersArray.length;
+
+          console.log(`[AdminTeamInfo] Group ${groupName}: ${memberCount} members`, membersArray);
+
+          // Skip rendering if no valid group_id
+          if (!groupId) {
+            console.warn("[AdminTeamInfo] Group without ID:", group);
+            return '';
+          }
+
+          return `
                           <tr data-view-group="${groupId}" style="cursor: pointer;" data-group-id="${groupId}">
                             <td>
                               <div style="display: flex; align-items: center; gap: 12px;">
@@ -303,8 +361,8 @@ export async function AdminTeamInfoPage() {
                             </td>
                           </tr>
                         `;
-                      }).join("")
-                  }
+        }).join("")
+      }
                 </tbody>
               </table>
             </div>
@@ -368,11 +426,15 @@ export async function AdminTeamInfoPage() {
           </div>
           <div class="form-group">
             <label>Status</label>
-            <select name="status">
+            <select name="status" data-validate-status>
               <option value="pending">Pending</option>
               <option value="accepted">Accepted</option>
               <option value="rejected">Rejected</option>
             </select>
+          </div>
+          <div class="form-group" data-rejection-reason-group hidden>
+            <label>Alasan Penolakan <span style="color:red">*</span></label>
+            <textarea name="rejection_reason" rows="3" class="form-input" placeholder="Wajib diisi jika status Rejected"></textarea>
           </div>
           <div class="form-actions">
             <button type="button" class="btn btn-outline" data-close-modal>Batal</button>
@@ -485,26 +547,16 @@ export async function AdminTeamInfoPage() {
           <button class="modal-close" data-close-modal>×</button>
         </div>
         <form class="modal-form" data-form="registration-period">
-          <div class="form-group">
-            <label>Tanggal Mulai</label>
-            <input type="datetime-local" name="start_date" required />
-            <p class="form-hint">Pilih tanggal dan waktu mulai periode pendaftaran</p>
+          <div class="alert alert-warning" style="font-size: 14px; background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; padding: 15px; border-radius: 6px; text-align: center;">
+            <div style="font-size: 24px; margin-bottom: 10px;">⚠️</div>
+            <strong>Periode Pendaftaran Dikelola Otomatis</strong>
+            <p style="margin-top: 8px; margin-bottom: 0;">
+              Silakan akses menu <strong>Dokumen & Timeline</strong> untuk mengubah jadwal pendaftaran (Timeline).
+              Perubahan di Timeline akan otomatis memperbarui periode pendaftaran ini.
+            </p>
           </div>
-          <div class="form-group">
-            <label>Tanggal Berakhir</label>
-            <input type="datetime-local" name="end_date" required />
-            <p class="form-hint">Pilih tanggal dan waktu akhir periode pendaftaran</p>
-          </div>
-          <div class="form-group">
-            <label>
-              <input type="checkbox" name="is_active" />
-              Aktifkan periode pendaftaran
-            </label>
-            <p class="form-hint">Centang untuk mengaktifkan periode pendaftaran ini</p>
-          </div>
-          <div class="form-actions">
-            <button type="button" class="btn btn-outline" data-close-modal>Batal</button>
-            <button type="submit" class="btn btn-primary">Simpan Periode</button>
+          <div class="form-actions" style="justify-content: center; margin-top: 20px;">
+            <button type="button" class="btn btn-primary" data-close-modal>Mengerti</button>
           </div>
         </form>
       </div>
@@ -573,7 +625,7 @@ window.renderGroupDetail = renderGroupDetail;
 
 function renderGroupDetail(group) {
   console.log("[renderGroupDetail] Rendering group:", group);
-  
+
   // Normalize group data to ensure consistent field names
   // Handle members field - could be members, group_members, users, or nested structure
   let members = [];
@@ -586,7 +638,7 @@ function renderGroupDetail(group) {
   } else if (group.member_list && Array.isArray(group.member_list)) {
     members = group.member_list;
   }
-  
+
   const normalizedGroup = {
     group_id: group.group_id || group.id || group.groupId || null,
     group_name: group.group_name || group.name || group.groupName || "Tanpa Nama",
@@ -607,7 +659,7 @@ function renderGroupDetail(group) {
 
   const membersArray = normalizedGroup.members || [];
   const status = (normalizedGroup.status || 'pending').toLowerCase();
-  
+
   // Get status display text and color
   const statusConfig = {
     'pending': { text: 'PENDING VALIDATION', color: '#f57c00', bg: '#fff8e1' },
@@ -615,9 +667,9 @@ function renderGroupDetail(group) {
     'rejected': { text: 'REJECTED', color: '#d32f2f', bg: '#ffebee' },
     'draft': { text: 'DRAFT', color: '#757575', bg: '#f5f5f5' }
   };
-  
+
   const statusInfo = statusConfig[status] || statusConfig['pending'];
-  
+
   return `
     <div class="group-detail-view-modern">
       
@@ -642,66 +694,151 @@ function renderGroupDetail(group) {
           <h3 class="detail-card-title">Use Case</h3>
         </div>
         <div class="detail-card-content">
-          ${normalizedGroup.use_case_name 
-            ? `
+          ${normalizedGroup.use_case
+      ? `
               <div class="use-case-display">
-                <div class="use-case-name-display">${normalizedGroup.use_case_name}</div>
+                <div class="use-case-name-display">${normalizedGroup.use_case.name}</div>
                 ${normalizedGroup.use_case_company ? `<div class="use-case-company-display">${normalizedGroup.use_case_company}</div>` : ''}
                 ${normalizedGroup.use_case_source_id ? `<div class="use-case-id-display">ID: ${normalizedGroup.use_case_source_id}</div>` : ''}
               </div>
             `
-            : '<div class="empty-state-text">Belum ada use case yang dipilih</div>'
-          }
+      : '<div class="empty-state-text">Belum ada use case yang dipilih</div>'
+    }
         </div>
       </div>
 
       <!-- Members Section -->
       <div class="detail-card-modern">
-        <div class="detail-card-header">
-          <div class="detail-card-icon">👥</div>
-          <h3 class="detail-card-title">Anggota Tim <span class="member-count-badge">${membersArray.length}</span></h3>
+        <div class="detail-card-header" style="justify-content: space-between; align-items: center;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+             <div class="detail-card-icon">👥</div>
+             <h3 class="detail-card-title">Anggota Tim <span class="member-count-badge">${membersArray.length}</span></h3>
+          </div>
+          <button class="btn-sm btn-primary-outline" data-open-add-member="${normalizedGroup.group_id}" style="padding: 6px 12px; font-size: 13px;">
+             + Tambah Anggota
+          </button>
         </div>
         <div class="detail-card-content">
           ${membersArray.length > 0
-            ? `
+      ? `
               <div class="members-list-modern">
                 ${membersArray.map((member, index) => {
-                  const memberId = member.user_id || member.users_source_id || member.id || member.userId || "";
-                  const memberName = member.full_name || member.name || member.fullName || member.email || "Unknown";
-                  const memberEmail = member.email || "-";
-                  const memberPath = member.learning_path || member.learningPath || "No Path";
-                  
-                  return `
-                    <div class="member-item-modern">
-                      <div class="member-avatar-modern">
-                        ${(memberName || "?").charAt(0).toUpperCase()}
-                      </div>
-                      <div class="member-info-modern">
-                        <div class="member-name-modern">${memberName}</div>
-                        <div class="member-email-modern">${memberEmail}</div>
-                        <div class="member-path-badge">${memberPath}</div>
-                      </div>
-                      ${memberId ? `
-                        <button class="member-edit-btn" data-edit-member="${memberId}" title="Edit Member">
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                          </svg>
-                        </button>
-                      ` : ''}
+        const memberId = member.user_id || member.users_source_id || member.id || member.userId || "";
+        const memberName = member.full_name || member.name || member.fullName || member.email || "Unknown";
+        const memberEmail = member.email || "-";
+        const memberRole = member.learning_path || member.learningPath || "-";
+
+
+        return `
+                  <div class="member-item-modern">
+                    <div class="member-avatar-modern" style="background: ${['#e0f2fe', '#f0fdf4', '#faf5ff', '#fff7ed'][index % 4]}; color: ${['#0369a1', '#15803d', '#7e22ce', '#c2410c'][index % 4]};">
+                      ${(memberName).charAt(0).toUpperCase()}
                     </div>
-                  `;
-                }).join("")}
+                    <div class="member-info-modern">
+                      <div class="member-name-modern">${memberName}</div>
+                      <div class="member-email-modern">${memberEmail}</div>
+                      <div class="member-role-badge-modern">${memberRole}</div>
+                    </div>
+                    <div class="member-actions-modern" style="display: flex; gap: 8px;">
+                       <button class="btn-icon-sm" data-edit-member="${memberId}" data-group-id="${normalizedGroup.group_id}" title="Edit Member">
+                          ✏️
+                       </button>
+                       <button class="btn-icon-sm btn-icon-danger" data-remove-member="${memberId}" data-group-id="${normalizedGroup.group_id}" title="Hapus Anggota" style="color: #ef4444; border-color: #fecaca; background: #fef2f2;">
+                          🗑️
+                       </button>
+                    </div>
+                  </div>
+                `;
+      }).join('')}
               </div>
             `
-            : `
+      : `
               <div class="empty-members-modern">
                 <div class="empty-icon">👤</div>
                 <div class="empty-text">Belum ada anggota tim</div>
                 <div class="empty-hint">Tambahkan anggota melalui tombol di atas</div>
               </div>
             `
-          }
+    }
+        </div >
+      </div >
+
+      </div >
+      
+                  <!-- Validation Actions (Different actions based on status) -->
+      <div class="detail-card-modern" style="border: none; background: transparent; padding: 0; box-shadow: none; margin-top: 20px;">
+        <div style="display: flex; gap: 12px;">
+          ${status === 'pending' || status === 'rejected' ? `
+          <button class="btn btn-primary" style="flex: 1; background-color: #2e7d32; border-color: #2e7d32; padding: 12px; font-weight: 600;" 
+            data-validate-group="${normalizedGroup.group_id}" data-validate-status="accepted">
+            ✅ Terima Tim & Kirim Email
+          </button>
+          ` : ''}
+
+          ${status === 'pending' || status === 'accepted' ? `
+          <button class="btn btn-danger" style="flex: 1; background-color: #d32f2f; border-color: #d32f2f; padding: 12px; font-weight: 600;" 
+            data-validate-group="${normalizedGroup.group_id}" data-validate-status="rejected">
+            ❌ Tolak Tim (dengan Alasan)
+          </button>
+          ` : ''}
+        </div>
+      </div>
+
+      <!-- Add Member Modal -->
+      <div class="modal-backdrop" id="add-member-modal" hidden>
+        <div class="modal-content" style="max-width: 500px;">
+          <div class="modal-header">
+            <h2>Tambah Anggota Tim</h2>
+            <button class="btn-icon" data-close-add-member-modal>×</button>
+          </div>
+          <div class="modal-body">
+            <form id="add-member-form" data-add-member-form>
+               <input type="hidden" name="group_id" value="${normalizedGroup.group_id}">
+               <div class="form-group">
+                 <label>User ID (UUID)</label>
+                 <input type="text" name="user_id" class="form-control" placeholder="Masukkan ID Peserta" required>
+                 <small class="text-muted">Masukkan UUID peserta yang belum memiliki tim.</small>
+               </div>
+               <div class="modal-actions">
+                 <button type="button" class="btn-secondary" data-close-add-member-modal>Batal</button>
+                 <button type="submit" class="btn-primary">
+                    <span>+</span> Tambahkan
+                 </button>
+               </div>
+            </form>
+      </div>
+
+      <!-- Edit Member Modal -->
+      <div class="modal-backdrop" id="edit-member-modal" hidden>
+        <div class="modal-content" style="max-width: 500px;">
+          <div class="modal-header">
+            <h2>Edit Learning Path</h2>
+            <button class="btn-icon" data-close-edit-member-modal>×</button>
+          </div>
+          <div class="modal-body">
+            <form id="edit-member-form" data-edit-member-form>
+               <input type="hidden" name="user_id">
+               <input type="hidden" name="group_id">
+               
+               <div class="form-group">
+                 <label>Pilih Learning Path Baru</label>
+                 <select name="learning_path" class="form-control" required>
+                    <option value="" disabled selected>Pilih Path...</option>
+                    <option value="Machine Learning (ML)">Machine Learning (ML)</option>
+                    <option value="Cloud Computing (CC)">Cloud Computing (CC)</option>
+                    <option value="Mobile Development (MD)">Mobile Development (MD)</option>
+                    <option value="Front-End Web & Back-End with AI (FEBE)">Front-End Web & Back-End with AI (FEBE)</option>
+                 </select>
+               </div>
+
+               <div class="modal-actions">
+                 <button type="button" class="btn-secondary" data-close-edit-member-modal>Batal</button>
+                 <button type="submit" class="btn-primary">
+                    💾 Simpan Perubahan
+                 </button>
+               </div>
+            </form>
+          </div>
         </div>
       </div>
 

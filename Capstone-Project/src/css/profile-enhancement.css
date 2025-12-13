@@ -1,0 +1,94 @@
+/* Improved Profile UI Elements */
+
+/* Student ID Card Style */
+.student-id-card {
+    display: flex;
+    align-items: center;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 8px 12px;
+    transition: all 0.2s ease;
+}
+
+.student-id-card:hover {
+    border-color: #cbd5e1;
+    background: #f1f5f9;
+}
+
+.student-id-card .id-icon {
+    font-size: 1.25rem;
+    margin-right: 10px;
+    filter: grayscale(0.2);
+}
+
+.student-id-card .id-value {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-family: 'Courier New', monospace;
+    /* Monospace for ID look */
+    font-weight: 600;
+    font-size: 1rem;
+    color: #334155;
+    outline: none;
+    width: 100%;
+}
+
+.student-id-card .copy-id-btn {
+    background: none;
+    border: none;
+    color: #64748b;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    font-size: 1.1rem;
+    transition: all 0.2s;
+}
+
+.student-id-card .copy-id-btn:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+}
+
+/* Learning Path Badge Style */
+.learning-path-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 10px 16px;
+    background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+    border: 1px solid #7dd3fc;
+    border-radius: 12px;
+    color: #0369a1;
+    font-weight: 600;
+    font-size: 0.95rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.learning-path-badge .lp-icon {
+    margin-right: 8px;
+    font-size: 1.2rem;
+}
+
+/* Modern Select */
+.modern-select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background-color: white;
+    font-size: 0.95rem;
+    color: #1e293b;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.modern-select:hover {
+    border-color: #cbd5e1;
+}
+
+.modern-select:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    outline: none;
+}

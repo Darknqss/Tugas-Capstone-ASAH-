@@ -3,9 +3,9 @@ import { listDeliverables, getTimeline } from "../services/adminService.js";
 // Helper function to format date
 function formatDate(dateString) {
   const date = new Date(dateString);
-  const options = { 
-    year: 'numeric', 
-    month: 'long', 
+  const options = {
+    year: 'numeric',
+    month: 'long',
     day: 'numeric',
     timeZone: 'UTC'
   };
@@ -17,7 +17,7 @@ function getStatusClass(startAt, endAt) {
   const now = new Date();
   const start = new Date(startAt);
   const end = new Date(endAt);
-  
+
   if (now < start) {
     return 'timeline-status--upcoming';
   } else if (now >= start && now <= end) {
@@ -49,30 +49,30 @@ export async function AdminDocumentsPage() {
   try {
     const response = await getTimeline();
     timelineData = response?.data || [];
-    
+
     // Sort by status: completed first, then active, then upcoming
     timelineData.sort((a, b) => {
       const statusA = getStatusClass(a.start_at, a.end_at);
       const statusB = getStatusClass(b.start_at, b.end_at);
-      
+
       // Define order: completed (0), active (1), upcoming (2)
       const order = {
         'timeline-status--completed': 0,
         'timeline-status--active': 1,
         'timeline-status--upcoming': 2
       };
-      
+
       const orderA = order[statusA] ?? 3;
       const orderB = order[statusB] ?? 3;
-      
+
       if (orderA !== orderB) {
         return orderA - orderB;
       }
-      
+
       // If same status, sort by start date (earliest first for completed, latest first for upcoming)
       const dateA = new Date(a.start_at);
       const dateB = new Date(b.start_at);
-      
+
       if (statusA === 'timeline-status--upcoming') {
         return dateA - dateB; // Upcoming: earliest first
       } else {
@@ -105,6 +105,10 @@ export async function AdminDocumentsPage() {
            </div>
            <div class="toolbar-right">
               <!-- Optional: Add bulk actions or export if needed later -->
+              <button class="btn-primary" data-open-modal="create-timeline" style="display: flex; align-items: center; gap: 8px;">
+                <span>📅</span>
+                <span>Buat Timeline</span>
+              </button>
            </div>
         </div>
 
@@ -137,7 +141,7 @@ export async function AdminDocumentsPage() {
                 ${deliverables.map(del => `
                   <tr>
                     <td>
-                       <div class="fw-bold">${del.group?.group_name || 'N/A'}</div>
+                       <div class="fw-bold">${del.group_name || del.group?.group_name || 'N/A'}</div>
                     </td>
                     <td>
                       <span class="document-type-badge">
@@ -182,11 +186,11 @@ export async function AdminDocumentsPage() {
           ` : `
             <div class="timeline-wrapper">
               ${timelineData.map((item, index) => {
-                const isDeadline = item.title?.includes('[DEADLINE]');
-                const statusClass = getStatusClass(item.start_at, item.end_at);
-                const isSameDay = new Date(item.start_at).toDateString() === new Date(item.end_at).toDateString();
-                
-                return `
+    const isDeadline = item.title?.includes('[DEADLINE]');
+    const statusClass = getStatusClass(item.start_at, item.end_at);
+    const isSameDay = new Date(item.start_at).toDateString() === new Date(item.end_at).toDateString();
+
+    return `
                   <div class="timeline-item ${statusClass}" data-timeline-item>
                     <div class="timeline-marker">
                       <div class="timeline-marker-dot"></div>
@@ -199,8 +203,8 @@ export async function AdminDocumentsPage() {
                           ${item.title || 'Untitled'}
                         </h3>
                         <span class="timeline-status ${statusClass}">
-                          ${statusClass === 'timeline-status--active' ? 'Sedang Berlangsung' : 
-                            statusClass === 'timeline-status--completed' ? 'Selesai' : 'Akan Datang'}
+                          ${statusClass === 'timeline-status--active' ? 'Sedang Berlangsung' :
+        statusClass === 'timeline-status--completed' ? 'Selesai' : 'Akan Datang'}
                         </span>
                       </div>
                       <div class="timeline-dates">
@@ -218,15 +222,107 @@ export async function AdminDocumentsPage() {
                       ${item.description ? `
                         <p class="timeline-description">${item.description}</p>
                       ` : ''}
+                      
+                      <!-- Action Buttons -->
+                      <div class="timeline-actions" style="margin-top: 12px; display: flex; gap: 8px; justify-content: flex-start;">
+                          <button class="btn-sm btn-outline" data-edit-timeline='${JSON.stringify(item).replace(/'/g, "&#39;")}' title="Edit Timeline" style="display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 6px; font-size: 13px; color: #4b5563; border-color: #d1d5db; background: white; transition: all 0.2s;">
+                              <span>✏️</span> Edit
+                          </button>
+                          <button class="btn-sm btn-outline-danger" data-delete-timeline="${item.id}" title="Hapus Timeline" style="display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 6px; font-size: 13px; color: #ef4444; border-color: #fca5a5; background: white; transition: all 0.2s;">
+                              <span>🗑️</span> Hapus
+                          </button>
+                      </div>
+
                     </div>
                   </div>
                 `;
-              }).join('')}
+  }).join('')}
             </div>
           `}
         </div>
         
       </div>
+    </div>
+    </div>
+
+    <!-- Create Timeline Modal -->
+    <div class="modal-backdrop" data-modal-backdrop hidden></div>
+    <div class="modal" data-modal="create-timeline" hidden>
+      <div class="modal-header">
+        <h3>Buat Jadwal Timeline</h3>
+        <button class="modal-close" data-close-modal>×</button>
+      </div>
+      <form class="modal-form" data-form="create-timeline">
+        <div class="alert alert-info" style="font-size: 13px; margin-bottom: 16px; background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; padding: 10px; border-radius: 6px;">
+           ℹ️ <strong>Info:</strong> Pendaftaran batch di Admin akan langsung diatur dari jadwal timeline ini (Kata kunci validasi: Register).
+        </div>
+        <div class="form-group">
+          <label>Judul Timeline</label>
+          <input type="text" name="title" required placeholder="Contoh: Pengumpulan Laporan Bab 1" />
+        </div>
+        <div class="form-group">
+          <label>Deskripsi</label>
+          <textarea name="description" rows="3" placeholder="Deskripsi singkat kegiatan..."></textarea>
+        </div>
+        <div class="form-group">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div>
+              <label>Tanggal Mulai</label>
+              <input type="datetime-local" name="start_at" required />
+            </div>
+            <div>
+              <label>Tanggal Selesai</label>
+              <input type="datetime-local" name="end_at" required />
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+           <label>Batch ID</label>
+           <input type="text" name="batch_id" required placeholder="Contoh: asah-batch-1" value="asah-batch-1" />
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-outline" data-close-modal>Batal</button>
+          <button type="submit" class="btn btn-primary">Simpan Jadwal</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Edit Timeline Modal -->
+    <div class="modal" data-modal="edit-timeline" hidden>
+      <div class="modal-header">
+        <h3>Edit Jadwal Timeline</h3>
+        <button class="modal-close" data-close-modal>×</button>
+      </div>
+      <form class="modal-form" data-form="edit-timeline">
+        <input type="hidden" name="id" data-id-input />
+        <div class="alert alert-info" style="font-size: 13px; margin-bottom: 16px; background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; padding: 10px; border-radius: 6px;">
+           ℹ️ <strong>Info:</strong> Pendaftaran batch di Admin akan langsung diatur dari jadwal timeline ini (Kata kunci validasi: Register).
+        </div>
+        <div class="form-group">
+          <label>Judul Timeline</label>
+          <input type="text" name="title" required placeholder="Contoh: Pengumpulan Laporan Bab 1" />
+        </div>
+        <div class="form-group">
+          <label>Deskripsi</label>
+          <textarea name="description" rows="3" placeholder="Deskripsi singkat kegiatan..."></textarea>
+        </div>
+        <div class="form-group">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div>
+              <label>Tanggal Mulai</label>
+              <input type="datetime-local" name="start_at" required />
+            </div>
+            <div>
+              <label>Tanggal Selesai</label>
+              <input type="datetime-local" name="end_at" required />
+            </div>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-outline" data-close-modal>Batal</button>
+          <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
+        </div>
+      </form>
     </div>
   `;
 }

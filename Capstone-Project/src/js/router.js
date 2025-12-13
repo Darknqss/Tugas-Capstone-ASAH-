@@ -116,7 +116,7 @@ export class Router {
 
         // Try to get component for current path, with fallbacks
         let component = this.routes[path];
-        
+
         // Fallback logic
         if (!component) {
             if (path === '/' || path === '') {
@@ -125,7 +125,7 @@ export class Router {
                     const hasUser = session?.user;
                     const role = session?.user?.role;
                     const isAdmin = role?.toLowerCase() === 'admin';
-                    
+
                     if (hasUser) {
                         component = isAdmin ? this.routes['/admin-dashboard'] : this.routes['/dashboard'];
                         if (isAdmin && window.location.pathname !== '/admin-dashboard') {
@@ -146,7 +146,7 @@ export class Router {
                     const hasUser = session?.user;
                     const role = session?.user?.role;
                     const isAdmin = role?.toLowerCase() === 'admin';
-                    
+
                     if (hasUser) {
                         component = isAdmin ? this.routes['/admin-dashboard'] : this.routes['/dashboard'];
                     } else {
@@ -185,6 +185,7 @@ export class Router {
         app.classList.add('fade-in');
 
         try {
+            console.log('[Router] Rendering component:', component.name);
             const result = component();
             // Check if component returns a Promise
             if (result && typeof result.then === 'function') {

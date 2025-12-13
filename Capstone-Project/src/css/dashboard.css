@@ -1,10 +1,8 @@
 /* Hero Section & Dashboard */
 .hero-section {
-  background: linear-gradient(
-    135deg,
-    var(--primary-color) 0%,
-    var(--secondary-color) 100%
-  );
+  background: linear-gradient(135deg,
+      var(--primary-color) 0%,
+      var(--secondary-color) 100%);
   color: var(--white);
   padding: 50px 0;
   text-align: center;
@@ -103,7 +101,3 @@
   font-size: 18px;
   margin-bottom: 10px;
 }
-
-
-
-

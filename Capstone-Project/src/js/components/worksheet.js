@@ -1,16 +1,24 @@
-import { getMyWorksheets, submitWorksheet } from "../services/groupService.js";
+import { getMyWorksheets, submitWorksheet, getWorksheetPeriods } from "../services/groupService.js";
 import { readSession } from "../services/authService.js";
 
 export async function WorksheetPage() {
     const session = readSession();
     let worksheets = [];
+    let periods = [];
     let hasError = false;
 
     try {
-        const response = await getMyWorksheets();
-        worksheets = response?.data || [];
+        const [wsResponse, periodsResponse] = await Promise.all([
+            getMyWorksheets(),
+            getWorksheetPeriods()
+        ]);
+        worksheets = wsResponse?.data || [];
+        periods = periodsResponse?.data || [];
+
+        // Sort periods by start date (newest first)
+        periods.sort((a, b) => new Date(b.start_date) - new Date(a.start_date));
     } catch (error) {
-        console.error("Error fetching worksheets:", error);
+        console.error("Error fetching data:", error);
         hasError = true;
     }
 
@@ -28,18 +36,27 @@ export async function WorksheetPage() {
                         <p class="card-subtitle">Lengkapi form di bawah untuk melaporkan aktivitas mingguan Anda</p>
                     </div>
                     <form class="worksheet-form" data-worksheet-form>
-                        <div class="form-row-group">
-                            <div class="form-row">
-                                <label for="period-start">Periode Mulai</label>
-                                <input type="date" id="period-start" name="period_start" required />
-                                <p class="form-hint">Tanggal mulai periode aktivitas</p>
-                            </div>
-                            <div class="form-row">
-                                <label for="period-end">Periode Akhir</label>
-                                <input type="date" id="period-end" name="period_end" required />
-                                <p class="form-hint">Tanggal akhir periode aktivitas</p>
-                            </div>
+                        <div class="form-row">
+                            <label for="period-id">Pilih Periode</label>
+                            <select id="period-id" name="period_id" required class="form-select" onchange="const selected = this.options[this.selectedIndex]; document.getElementById('period-dates-display').textContent = selected.dataset.dates || '-';">
+                                <option value="">-- Pilih Periode Laporan --</option>
+                                ${periods.map(p => {
+        const startDate = formatDate(p.start_date);
+        const endDate = formatDate(p.end_date);
+        // Highlight active periods
+        const now = new Date();
+        const start = new Date(p.start_date);
+        const end = new Date(p.end_date);
+        const isActive = now >= start && now <= end;
+        const label = `${p.title} ${isActive ? '(Aktif)' : ''}`;
+
+        return `<option value="${p.id}" data-dates="${startDate} - ${endDate}">${label}</option>`;
+    }).join('')}
+                            </select>
+                            <p class="form-hint">Periode: <strong id="period-dates-display">-</strong></p>
                         </div>
+                        <!-- Hidden inputs for validation bypass if needed, or remove them -->
+                        <!-- Server needs period_id, so we don't send manual dates anymore -->
                         <div class="form-row">
                             <label for="activity-description">Deskripsi Aktivitas</label>
                             <textarea id="activity-description" name="activity_description" rows="5" placeholder="Contoh: Membuat API Login dan Register, melakukan testing, dll." required></textarea>
@@ -102,9 +119,9 @@ function formatDate(dateStr) {
 function formatDateTime(dateStr) {
     if (!dateStr) return 'N/A';
     const date = new Date(dateStr);
-    return date.toLocaleString('id-ID', { 
-        day: 'numeric', 
-        month: 'short', 
+    return date.toLocaleString('id-ID', {
+        day: 'numeric',
+        month: 'short',
         year: 'numeric',
         hour: '2-digit',
         minute: '2-digit'
@@ -114,6 +131,9 @@ function formatDateTime(dateStr) {
 function getStatusLabel(status) {
     const labels = {
         'submitted': 'Menunggu Review',
+        'completed': 'Selesai',
+        'completed_late': 'Selesai Terlambat',
+        'missed': 'Tidak Selesai',
         'approved': 'Disetujui',
         'rejected': 'Ditolak',
         'late': 'Terlambat'

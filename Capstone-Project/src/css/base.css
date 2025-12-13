@@ -96,7 +96,7 @@ button {
   padding: 0 8px;
 }
 
-.nav-menu > div {
+.nav-menu>div {
   display: flex;
   gap: 4px;
   flex-wrap: nowrap;
@@ -105,7 +105,7 @@ button {
   justify-content: center;
 }
 
-.nav-menu > div[hidden] {
+.nav-menu>div[hidden] {
   display: none !important;
 }
 
@@ -290,6 +290,7 @@ button {
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -461,7 +462,3 @@ button {
     font-size: 13px;
   }
 }
-
-
-
-
