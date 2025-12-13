@@ -210,6 +210,8 @@ export async function TeamRegistrationPage() {
                 <p class="form-description">Isi detail tim Anda untuk melanjutkan proses capstone.</p>
                 
                 <form class="team-registration-form" data-registration-form>
+                  <div class="form-feedback" data-form-feedback hidden></div>
+                  
                   <div class="form-row">
                     <label for="team-name">Nama Tim <span class="required">*</span></label>
                     <input 

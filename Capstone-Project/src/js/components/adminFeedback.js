@@ -13,56 +13,73 @@ export async function AdminFeedbackPage() {
   }
 
   return `
-    <div class="container content-section">
-      <div class="section-header">
-        <h1 class="section-title">360 Feedback - Admin</h1>
-        <p class="section-description">Export dan kelola data feedback 360 derajat</p>
-      </div>
+    <div class="admin-subpage-wrapper">
+      
+      <div class="container main-content-wrapper" style="margin-top: 30px;">
+         <h2 class="mb-4 text-dark fw-bold">360 Feedback</h2>
 
-      <div class="admin-actions-bar">
-        <button class="btn btn-primary" id="export-feedback-btn" data-export-feedback>
-          📥 Export Data Feedback (CSV)
-        </button>
-      </div>
+        
+        <!-- Toolbar -->
+        <div class="admin-toolbar-card">
+           <div class="toolbar-left">
+              <span class="text-sm text-muted">Total Data: <strong>${feedbackData.length}</strong> Entri</span>
+           </div>
+           <div class="toolbar-right">
+              <button class="btn-primary-icon" id="export-feedback-btn" data-export-feedback>
+                <span>📥</span> Download CSV
+              </button>
+           </div>
+        </div>
 
-      <div class="card admin-table-card">
-        ${hasError ? `
-          <div class="empty-state">
-            <div class="empty-state-icon">⚠️</div>
-            <p class="empty-state-text">Gagal memuat data feedback</p>
-          </div>
-        ` : feedbackData.length === 0 ? `
-          <div class="empty-state">
-            <div class="empty-state-icon">💬</div>
-            <p class="empty-state-text">Belum ada data feedback</p>
-            <p class="empty-state-subtext">Data feedback akan muncul setelah peserta mengisi penilaian</p>
-          </div>
-        ` : `
-          <div class="data-table">
-            <table>
-              <thead>
-                <tr>
-                  <th>Reviewer</th>
-                  <th>Reviewee</th>
-                  <th>Nama Tim</th>
-                  <th>Kontribusi</th>
-                  <th>Alasan</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${feedbackData.map(fb => `
+        <!-- Table Card -->
+        <div class="card list-card">
+          <div class="table-responsive">
+            ${hasError ? `
+              <div class="empty-state">
+                <div class="empty-state-icon">⚠️</div>
+                <p class="empty-state-text">Gagal memuat data feedback</p>
+              </div>
+            ` : feedbackData.length === 0 ? `
+              <div class="empty-state" style="padding: 60px; text-align: center;">
+                <div style="font-size: 48px; margin-bottom: 16px;">💬</div>
+                <h3 style="margin: 0; font-size: 18px; color: #333;">Belum ada feedback</h3>
+                <p style="color: #666; margin-top: 8px;">Peserta akan mengisi penilaian di akhir periode.</p>
+              </div>
+            ` : `
+              <table class="modern-table">
+                <thead>
                   <tr>
-                    <td>${fb.reviewer_name || 'N/A'}</td>
-                    <td>${fb.reviewee_name || 'N/A'}</td>
-                    <td>${fb.group_name || 'N/A'}</td>
-                    <td>${getContributionLabel(fb.contribution)}</td>
-                    <td>${fb.reason?.substring(0, 50) || 'N/A'}${fb.reason?.length > 50 ? '...' : ''}</td>
+                    <th>Reviewer</th>
+                    <th>Reviewee</th>
+                    <th>Nama Tim</th>
+                    <th>Kontribusi</th>
+                    <th>Alasan</th>
                   </tr>
-                `).join('')}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  ${feedbackData.map(fb => `
+                    <tr>
+                      <td>
+                        <div class="fw-bold text-dark">${fb.reviewer_name || 'N/A'}</div>
+                      </td>
+                      <td>
+                        <div class="fw-bold text-dark">${fb.reviewee_name || 'N/A'}</div>
+                      </td>
+                      <td><span class="badge-pill">${fb.group_name || 'N/A'}</span></td>
+                      <td>${getContributionLabel(fb.contribution)}</td>
+                      <td>
+                         <div class="text-sm text-muted text-truncate" style="max-width: 300px;" title="${fb.reason || ''}">
+                             ${fb.reason || '-'}
+                         </div>
+                      </td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            `}
           </div>
-        `}
+        </div>
+        
       </div>
     </div>
   `;

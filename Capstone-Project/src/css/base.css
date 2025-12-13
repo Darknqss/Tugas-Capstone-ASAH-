@@ -15,6 +15,10 @@
   --text-dark: #212529;
   --border-radius: 8px;
   --nav-gray: #999999;
+  --danger-color: #e43737;
+  --border-color: #e9ecef;
+  --bg-light: #f8f9fa;
+  --text-light: #6c757d;
 }
 
 body {
@@ -49,85 +53,99 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 15px 0;
-  gap: 16px;
+  padding: 14px 0;
+  gap: 12px;
   flex-wrap: nowrap;
 }
 
+.logo-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 0 0 auto;
+  margin-right: auto;
+  margin-left: 0;
+}
+
+.header-logo-dicoding {
+  height: 60px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+}
+
 .logo {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 800;
   color: var(--primary-color);
-  letter-spacing: 1px;
-  flex: 0 0 auto;
+  letter-spacing: 0.5px;
   white-space: nowrap;
   min-width: 0;
+  margin: 0;
 }
 
 .nav-menu {
   display: flex;
-  gap: 6px;
+  gap: 4px;
   flex: 1 1 auto;
   justify-content: center;
   align-items: center;
   flex-wrap: nowrap;
   min-width: 0;
   overflow: hidden;
+  padding: 0 8px;
 }
 
-.nav-menu > div {
+.nav-menu>div {
   display: flex;
-  gap: 6px;
+  gap: 4px;
   flex-wrap: nowrap;
   align-items: center;
   width: 100%;
   justify-content: center;
 }
 
-.nav-menu > div[hidden] {
+.nav-menu>div[hidden] {
   display: none !important;
 }
 
 .nav-link {
   text-decoration: none;
   color: var(--nav-gray);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
-  transition: all 0.3s;
+  transition: all 0.3s ease;
   position: relative;
-  padding: 8px 14px;
+  padding: 8px 12px;
   border-radius: 8px;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   white-space: nowrap;
-  flex-shrink: 1;
-  min-width: 0;
+  flex-shrink: 0;
+  min-width: fit-content;
+  line-height: 1.4;
 }
 
 .nav-link:hover {
   color: var(--primary-color);
-  background-color: rgba(0, 61, 92, 0.05);
+  background-color: rgba(0, 61, 92, 0.06);
 }
 
 .nav-link.active {
   color: var(--primary-color);
-  background-color: rgba(0, 61, 92, 0.08);
+  background-color: #e6f4f8;
   font-weight: 600;
+  box-shadow: 0 2px 4px rgba(0, 61, 92, 0.1);
 }
 
 .nav-link.active::after {
-  content: "";
-  position: absolute;
-  bottom: 0;
-  left: 20px;
-  right: 20px;
-  height: 3px;
-  background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
-  border-radius: 2px 2px 0 0;
+  display: none;
 }
 
 .nav-buttons {
   display: flex;
-  gap: 15px;
+  gap: 10px;
   align-items: center;
   flex: 0 0 auto;
   white-space: nowrap;
@@ -143,6 +161,12 @@ button {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  position: relative;
+  z-index: 1;
 }
 
 .btn-outline {
@@ -266,6 +290,7 @@ button {
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -279,16 +304,21 @@ button {
 /* Responsive */
 @media (max-width: 1200px) {
   .nav-menu {
-    gap: 4px;
+    gap: 3px;
+    padding: 0 6px;
   }
 
   .nav-link {
-    padding: 8px 12px;
-    font-size: 13px;
+    padding: 7px 11px;
+    font-size: 12px;
   }
 
   .logo {
     font-size: 22px;
+  }
+
+  .header-logo-dicoding {
+    height: 60px;
   }
 }
 
@@ -298,20 +328,29 @@ button {
   }
 
   .nav-wrapper {
-    gap: 12px;
+    gap: 10px;
   }
 
   .nav-menu {
-    gap: 4px;
+    gap: 3px;
+    padding: 0 4px;
   }
 
   .nav-link {
-    padding: 8px 10px;
-    font-size: 12px;
+    padding: 7px 10px;
+    font-size: 11px;
   }
 
   .logo {
     font-size: 20px;
+  }
+
+  .header-logo-dicoding {
+    height: 55px;
+  }
+
+  .logo-container {
+    gap: 12px;
   }
 }
 
@@ -327,6 +366,14 @@ button {
     flex: 0 0 auto;
   }
 
+  .header-logo-dicoding {
+    height: 50px;
+  }
+
+  .logo-container {
+    gap: 10px;
+  }
+
   .nav-menu {
     order: 3;
     flex: 1 1 100%;
@@ -337,6 +384,8 @@ button {
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     padding-bottom: 4px;
+    padding-left: 0;
+    padding-right: 0;
   }
 
   .nav-menu::-webkit-scrollbar {
@@ -344,9 +393,10 @@ button {
   }
 
   .nav-link {
-    padding: 6px 10px;
-    font-size: 12px;
+    padding: 7px 10px;
+    font-size: 11px;
     white-space: nowrap;
+    flex-shrink: 0;
   }
 
   .nav-buttons {
@@ -394,8 +444,16 @@ button {
     letter-spacing: 0.5px;
   }
 
+  .header-logo-dicoding {
+    height: 45px;
+  }
+
+  .logo-container {
+    gap: 8px;
+  }
+
   .nav-link {
-    padding: 6px 8px;
+    padding: 7px 10px;
     font-size: 11px;
   }
 
@@ -404,7 +462,3 @@ button {
     font-size: 13px;
   }
 }
-
-
-
-
