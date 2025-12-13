@@ -2351,60 +2351,74 @@ class App {
     async handleExportData() {
         try {
             this.showToast("Mengekspor data tim...");
-            const { exportTeamsData, listAllGroups } = await import("./services/adminService.js");
+            const { exportTeamsData, listAllGroups, getGroupById } = await import("./services/adminService.js");
 
             // Try to use export endpoint first, fallback to listAllGroups
-            let data = [];
+            let basicGroups = [];
             try {
                 const exportResponse = await exportTeamsData();
-                data = exportResponse?.data || exportResponse || [];
+                basicGroups = exportResponse?.data || exportResponse || [];
             } catch (exportError) {
                 console.warn("Export endpoint not available, using listAllGroups:", exportError);
                 const response = await listAllGroups();
-                data = response?.data || response?.groups || response || [];
+                basicGroups = response?.data || response?.groups || response || [];
             }
 
-            if (!Array.isArray(data) || data.length === 0) {
+            if (!Array.isArray(basicGroups) || basicGroups.length === 0) {
                 this.showToast("Tidak ada data tim untuk diekspor");
                 return;
             }
 
-            // Prepare CSV data
-            const headers = ["Nama Tim", "Batch ID", "Status", "Jumlah Anggota", "Status Proyek", "Anggota"];
-            const rows = data.map(group => {
-                const members = group.members || [];
+            this.showToast("Mengambil detail anggota tim...");
+
+            // Fetch detailed group data to get members
+            const data = await Promise.all(basicGroups.map(async (g) => {
+                try {
+                    const groupId = g.group_id || g.id || g.groupId;
+                    if (!groupId) return g;
+                    const detailRes = await getGroupById(groupId);
+                    const detail = detailRes?.data || detailRes || {};
+                    return { ...g, ...detail };
+                } catch (e) {
+                    console.warn("Failed to get group detail:", e);
+                    return g;
+                }
+            }));
+
+            // Use xlsx library for Excel export
+            const XLSX = await import("xlsx");
+            const { utils, writeFile } = XLSX;
+
+            const wb = utils.book_new();
+
+            // Prepare clean data for export
+            const cleanData = data.map(group => {
+                const members = group.members || group.group_members || group.users || [];
                 const memberNames = members.map(m =>
                     m.full_name || m.name || m.email || "Unknown"
-                ).join("; ");
+                );
 
-                return [
-                    group.group_name || group.name || "-",
-                    group.batch_id || "-",
-                    (group.status || "pending").toUpperCase(),
-                    members.length,
-                    (group.project_status || "not_started").replace(/_/g, " "),
-                    memberNames || "-"
-                ];
+                return {
+                    "Nama Tim": group.group_name || group.name || "-",
+                    "Batch ID": group.batch_id || "-",
+                    "Status": (group.status || "pending").toUpperCase(),
+                    "Jumlah Anggota": members.length,
+                    "Status Proyek": (group.project_status || "not_started").replace(/_/g, " "),
+                    "Anggota 1": memberNames[0] || "-",
+                    "Anggota 2": memberNames[1] || "-",
+                    "Anggota 3": memberNames[2] || "-",
+                    "Anggota 4": memberNames[3] || "-",
+                    "Anggota 5": memberNames[4] || "-"
+                };
             });
 
-            // Create CSV content
-            const csvContent = [
-                headers.join(','),
-                ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
-            ].join('\n');
+            const wsSheet = utils.json_to_sheet(cleanData);
+            utils.book_append_sheet(wb, wsSheet, "Team Data");
 
-            // Download CSV
-            const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            const url = URL.createObjectURL(blob);
-            link.setAttribute('href', url);
-            link.setAttribute('download', `teams_export_${new Date().toISOString().split('T')[0]}.csv`);
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            // Generate and download Excel file
+            writeFile(wb, `Teams_Export_${new Date().toISOString().split('T')[0]}.xlsx`);
 
-            this.showToast("Data tim berhasil diekspor ✅");
+            this.showToast("Data tim berhasil diekspor ke Excel ✅");
         } catch (error) {
             console.error("Error exporting teams:", error);
             this.showToast("Gagal mengekspor data tim");
@@ -2708,54 +2722,31 @@ class App {
                 return;
             }
 
-            // Convert to CSV
-            const headers = ['Nama Peserta', 'Email', 'Periode Mulai', 'Periode Akhir', 'Aktivitas', 'Status', 'Feedback', 'Tanggal Submit'];
-            const rows = worksheets.map(ws => {
-                // Escape quotes and replace newlines in text fields
-                const escapeCSV = (text) => {
-                    if (!text) return 'N/A';
-                    return String(text)
-                        .replace(/"/g, '""') // Escape double quotes
-                        .replace(/\n/g, ' ') // Replace newlines with space
-                        .replace(/\r/g, ' '); // Replace carriage returns
-                };
+            // Use xlsx library for Excel export
+            const XLSX = await import("xlsx");
+            const { utils, writeFile } = XLSX;
 
-                return [
-                    escapeCSV(ws.users?.name),
-                    escapeCSV(ws.users?.email),
-                    ws.period_start || 'N/A',
-                    ws.period_end || 'N/A',
-                    escapeCSV(ws.activity_description),
-                    ws.status || 'N/A',
-                    escapeCSV(ws.feedback),
-                    ws.submitted_at || 'N/A'
-                ];
-            });
+            const wb = utils.book_new();
 
-            const csvContent = [
-                headers.join(','),
-                ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
-            ].join('\n');
+            // Prepare clean data for export
+            const cleanData = worksheets.map(ws => ({
+                "Nama Peserta": ws.users?.name || 'N/A',
+                "Email": ws.users?.email || 'N/A',
+                "Periode Mulai": ws.period_start || 'N/A',
+                "Periode Akhir": ws.period_end || 'N/A',
+                "Aktivitas": ws.activity_description || 'N/A',
+                "Status": ws.status || 'N/A',
+                "Feedback": ws.feedback || 'N/A',
+                "Tanggal Submit": ws.submitted_at || 'N/A'
+            }));
 
-            // Add BOM for Excel compatibility (UTF-8)
-            const BOM = '\uFEFF';
-            const csvWithBOM = BOM + csvContent;
+            const wsSheet = utils.json_to_sheet(cleanData);
+            utils.book_append_sheet(wb, wsSheet, "Worksheet Data");
 
-            // Create download link
-            const blob = new Blob([csvWithBOM], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            const url = URL.createObjectURL(blob);
-            link.setAttribute('href', url);
-            link.setAttribute('download', `worksheet-validasi-${new Date().toISOString().split('T')[0]}.csv`);
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            // Generate and download Excel file
+            writeFile(wb, `Worksheet_Export_${new Date().toISOString().split('T')[0]}.xlsx`);
 
-            // Clean up the URL object
-            URL.revokeObjectURL(url);
-
-            this.showToast("Data berhasil diekspor ke spreadsheet ✅");
+            this.showToast("Data berhasil diekspor ke Excel ✅");
         } catch (error) {
             console.error("Error exporting worksheets:", error);
             this.showToast("Gagal mengekspor data. Pastikan data worksheet tersedia.", true);
