@@ -266,22 +266,22 @@ window.showFeedbackDetail = function (groupId) {
 
   if (members.length === 0) {
     contentEl.innerHTML = `
-            <div class="text-center py-5">
-                <div class="mb-3 text-muted" style="font-size: 2rem;">👥</div>
-                <h5 class="text-muted fw-normal">Tidak ada anggota di tim ini</h5>
+            <div style="text-align: center; padding: 60px 20px;">
+                <div style="font-size: 48px; margin-bottom: 16px;">👥</div>
+                <h5 style="margin: 0; font-size: 18px; color: #333; font-weight: 600;">Tidak ada anggota di tim ini</h5>
             </div>
         `;
   } else {
-    // --- STRICT TABLE LAYOUT ---
+    // --- MODERN TABLE LAYOUT (Matching adminTeamInfo style) ---
     let html = `
             <div class="table-responsive">
-                <table class="table table-borderless align-middle mb-0" style="min-width: 600px;">
-                    <thead style="border-bottom: 2px solid #f0f0f0;">
+                <table class="modern-table" style="width: 100%;">
+                    <thead>
                        <tr>
-                          <th class="ps-3 py-3 text-muted text-uppercase text-xs fw-bold" style="width: 40%;">Nama Anggota</th>
-                          <th class="py-3 text-center text-muted text-uppercase text-xs fw-bold" style="width: 20%;">Status</th>
-                          <th class="py-3 text-center text-muted text-uppercase text-xs fw-bold" style="width: 20%;">Total Review</th>
-                          <th class="pe-3 py-3 text-end text-muted text-uppercase text-xs fw-bold" style="width: 20%;">Aksi</th>
+                          <th>Nama Anggota</th>
+                          <th>Status</th>
+                          <th>Total Review</th>
+                          <th>Aksi</th>
                        </tr>
                     </thead>
                     <tbody>
@@ -290,42 +290,43 @@ window.showFeedbackDetail = function (groupId) {
     html += members.map(member => {
       const name = member.name || member.full_name || member.email || "Unknown";
 
-      // Robust Logic
+      // Robust Logic to count feedback
       const givenFeedback = feedbackData.filter(f => {
-        if (f.reviewer?.users_source_id && member.source_id) return f.reviewer.users_source_id == member.source_id;
-        if (f.reviewer?.id && member.id) return f.reviewer.id == member.id;
-        const revName = f.reviewer?.name || f.reviewer_name;
-        return revName === name;
+        const reviewerId = String(f.reviewer?.users_source_id || f.reviewer?.id || f.reviewer_id || '');
+        const reviewerName = f.reviewer?.name || f.reviewer_name || '';
+        const memberId = String(member.source_id || member.id || member.users_source_id || '');
+
+        if (memberId && reviewerId && memberId === reviewerId) return true;
+        return reviewerName === name;
       });
 
       const count = givenFeedback.length;
       const isDone = count > 0;
 
       return `
-             <tr class="hover-bg-light" style="transition: background 0.2s; border-bottom: 1px solid #f8f9fa;">
-                <td class="ps-3 py-3">
-                   <div class="d-flex align-items-center">
+             <tr style="cursor: pointer;">
+                <td>
+                   <div style="display: flex; align-items: center; gap: 12px;">
+                       <div class="team-avatar">${(name || "?").charAt(0).toUpperCase()}</div>
                        <div>
-                           <div class="fw-bold text-dark mb-0 text-truncate" style="max-width: 220px;">${name}</div>
-                           <div class="text-xs text-muted text-uppercase" style="letter-spacing: 0.5px;">${member.role || 'Member'}</div>
+                           <div style="font-weight: 600; color: #333; font-size: 14px;">${name}</div>
+                           <div style="font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.5px;">${member.role || 'Member'}</div>
                        </div>
                    </div>
                 </td>
-                <td class="py-3 text-center">
-                   ${isDone ?
-          `<span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill fw-medium d-inline-flex align-items-center gap-2" style="white-space: nowrap;">
-                        <i class="bi bi-check-circle-fill"></i> Sudah
-                      </span>` :
-          `<span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-2 rounded-pill fw-medium d-inline-flex align-items-center gap-2" style="white-space: nowrap;">
-                        <i class="bi bi-x-circle-fill"></i> Belum
-                      </span>`
-        }
+                <td>
+                   <span class="status-indicator ${isDone ? 'status-accepted' : 'status-rejected'}">
+                      ${isDone ? '✅ SUDAH' : '❌ BELUM'}
+                   </span>
                 </td>
-                <td class="py-3 text-center">
-                   <span class="fw-bold text-dark fs-6">${count}</span> <span class="text-muted text-sm ms-1">Feedback</span>
+                <td>
+                   <div style="display: flex; align-items: center; gap: 6px;">
+                      <span style="font-weight: 700; font-size: 16px; color: #333;">${count}</span>
+                      <span style="font-size: 13px; color: #6c757d;">feedback</span>
+                   </div>
                 </td>
-                <td class="pe-3 py-3 text-end">
-                    <button class="btn btn-sm btn-outline-dark rounded-pill px-3 fw-medium text-nowrap" onmousedown="window.showMemberFeedback('${groupId}', '${name}')" style="border-color: #dee2e6;">
+                <td>
+                    <button class="btn-primary-sm" onclick="window.showMemberFeedback('${groupId}', '${name.replace(/'/g, "\\'")}')">
                        Lihat Detail
                     </button>
                 </td>
@@ -366,21 +367,21 @@ window.showMemberFeedback = function (groupId, memberName) {
 
   if (feedbackData.length === 0) {
     contentEl.innerHTML = `
-            <div class="text-center py-5">
-                <div class="mb-3 text-muted" style="font-size: 2.5rem; opacity: 0.5;">📭</div>
-                <h5 class="text-muted fw-normal">Belum ada feedback</h5>
-                <p class="text-muted small mt-2">Member ini belum memberikan penilaian.</p>
+            <div style="text-align: center; padding: 60px 20px;">
+                <div style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;">📭</div>
+                <h5 style="margin: 0; font-size: 18px; color: #333; font-weight: 600;">Belum ada feedback</h5>
+                <p style="color: #6c757d; margin-top: 8px; font-size: 14px;">Member ini belum memberikan penilaian.</p>
             </div>
         `;
   } else {
     contentEl.innerHTML = `
-            <div class="table-responsive rounded border">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="bg-light">
+            <div class="table-responsive">
+                <table class="modern-table" style="width: 100%;">
+                    <thead>
                         <tr>
-                            <th class="ps-4 py-3 border-top-0 text-secondary text-xs text-uppercase fw-bold">Reviewee</th>
-                            <th class="py-3 border-top-0 text-secondary text-xs text-uppercase fw-bold text-center">Kontribusi</th>
-                            <th class="py-3 border-top-0 text-secondary text-xs text-uppercase fw-bold" style="width: 45%;">Alasan</th>
+                            <th>Reviewee</th>
+                            <th>Kontribusi</th>
+                            <th style="width: 45%;">Alasan</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -390,13 +391,18 @@ window.showMemberFeedback = function (groupId, memberName) {
 
       return `
                             <tr>
-                                <td class="ps-4 py-3 fw-medium text-dark">${revieweeName}</td>
-                                <td class="py-3 text-center">
-                                    <span class="badge bg-info-subtle text-info border border-info-subtle px-2 py-1 rounded text-uppercase text-xs" style="letter-spacing: 0.5px;">
+                                <td>
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <div class="team-avatar" style="width: 32px; height: 32px; font-size: 12px;">${(revieweeName || "?").charAt(0).toUpperCase()}</div>
+                                        <span style="font-weight: 600; color: #333;">${revieweeName}</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="status-indicator status-pending_validation">
                                         ${getContributionLabel(contribution)}
                                     </span>
                                 </td>
-                                <td class="py-3 text-muted text-sm leading-relaxed" style="text-align: justify; line-height: 1.6;">${fb.reason || '-'}</td>
+                                <td style="text-align: justify; line-height: 1.6; color: #555; font-size: 13px;">${fb.reason || '-'}</td>
                             </tr>
                         `;
     }).join('')}
