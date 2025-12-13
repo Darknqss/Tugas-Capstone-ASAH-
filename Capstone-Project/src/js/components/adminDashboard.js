@@ -104,52 +104,52 @@ export async function AdminDashboardPage() {
         <h2 class="section-heading-lg">Akses Cepat & Kelola</h2>
         <div class="feature-card-grid">
           <!-- Team Information -->
-          <a href="/admin-team-information" class="feature-card color-blue-gradient" data-link>
-            <div class="feature-icon-lg">👥</div>
+          <a href="/admin-team-information" class="feature-card color-blue-gradient" data-link style="display: flex; flex-direction: column; align-items: center; text-align: center;">
+            <div class="feature-icon-lg" style="margin-bottom: 12px;">👥</div>
             <div class="feature-content">
               <h3>Team Information</h3>
               <p>Kelola data tim, validasi pendaftaran, dan lihat detail anggota mahasiswa.</p>
             </div>
-            <div class="feature-action">
+            <div class="feature-action" style="justify-content: center; width: 100%;">
               <span>Kelola Tim</span>
               <div class="feature-arrow">→</div>
             </div>
           </a>
 
           <!-- Dokumen & Timeline -->
-          <a href="/admin-dokumen-timeline" class="feature-card color-green-gradient" data-link>
-            <div class="feature-icon-lg">📁</div>
+          <a href="/admin-dokumen-timeline" class="feature-card color-green-gradient" data-link style="display: flex; flex-direction: column; align-items: center; text-align: center;">
+            <div class="feature-icon-lg" style="margin-bottom: 12px;">📁</div>
             <div class="feature-content">
               <h3>Dokumen & Timeline</h3>
               <p>Pantau progress deliverable, project plan, dan timeline pengerjaan tim.</p>
             </div>
-             <div class="feature-action">
+             <div class="feature-action" style="justify-content: center; width: 100%;">
               <span>Cek Dokumen</span>
               <div class="feature-arrow">→</div>
             </div>
           </a>
 
           <!-- Individual Worksheet -->
-          <a href="/admin-individual-worksheet" class="feature-card color-orange-gradient" data-link>
-            <div class="feature-icon-lg">📝</div>
+          <a href="/admin-individual-worksheet" class="feature-card color-orange-gradient" data-link style="display: flex; flex-direction: column; align-items: center; text-align: center;">
+            <div class="feature-icon-lg" style="margin-bottom: 12px;">📝</div>
             <div class="feature-content">
               <h3>Individual Worksheet</h3>
               <p>Validasi laporan mingguan individu (logbook) dari setiap mahasiswa.</p>
             </div>
-             <div class="feature-action">
+             <div class="feature-action" style="justify-content: center; width: 100%;">
               <span>Validasi Worksheet</span>
               <div class="feature-arrow">→</div>
             </div>
           </a>
 
           <!-- 360 Feedback -->
-          <a href="/admin-360-feedback" class="feature-card color-purple-gradient" data-link>
-            <div class="feature-icon-lg">🔄</div>
+          <a href="/admin-360-feedback" class="feature-card color-purple-gradient" data-link style="display: flex; flex-direction: column; align-items: center; text-align: center;">
+            <div class="feature-icon-lg" style="margin-bottom: 12px;">🔄</div>
             <div class="feature-content">
               <h3>360 Feedback</h3>
               <p>Lihat dan export hasil penilaian evaluasi rekan setim (Peer Review).</p>
             </div>
-            <div class="feature-action">
+            <div class="feature-action" style="justify-content: center; width: 100%;">
               <span>Lihat Feedback</span>
               <div class="feature-arrow">→</div>
             </div>
@@ -174,13 +174,12 @@ export async function AdminDashboardPage() {
                     <th>Nama Tim</th>
                     <th>Batch</th>
                     <th>Status</th>
-                    <th>Proyek</th>
                     <th></th>
                   </tr>
                 </thead>
                 <tbody>
                   ${groupsData.length === 0
-      ? `<tr><td colspan="5" class="empty-cell">Belum ada tim terdaftar</td></tr>`
+      ? `<tr><td colspan="4" class="empty-cell">Belum ada tim terdaftar</td></tr>`
       : groupsData
         .slice(0, 5)
         .map(
@@ -194,12 +193,6 @@ export async function AdminDashboardPage() {
                         </td>
                         <td><span class="badge-pill">${group.batch_id || "-"}</span></td>
                         <td><span class="status-indicator status-${group.status || "pending"}">${(group.status || "pending")}</span></td>
-                        <td>
-                           <div class="project-progress">
-                              <div class="progress-dot ${group.project_status === "in_progress" ? "active" : ""}"></div>
-                              <span>${(group.project_status || "-").replace("_", " ")}</span>
-                           </div>
-                        </td>
                         <td class="text-right">
                           <a href="/admin-team-information?groupId=${group.group_id}" class="btn-icon" data-link title="Detail">
                             ↗

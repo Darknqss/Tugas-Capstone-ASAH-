@@ -19,7 +19,8 @@
     <div class="container">
       <div class="nav-wrapper">
         <div class="logo-container">
-          <img src="/src/assets/images/dicoding-logo.png" alt="Dicoding Logo" class="header-logo-dicoding" onerror="this.style.display='none'" />
+          <img src="/src/assets/images/dicoding-logo.png" alt="Dicoding Logo" class="header-logo-dicoding"
+            onerror="this.style.display='none'" />
           <h1 class="logo">CAPSTONE TEAM</h1>
         </div>
         <nav class="nav-menu" data-nav-menu>
@@ -80,7 +81,7 @@
     <form class="profile-form" data-profile-form>
       <div class="profile-grid">
         <!-- Left Column: Account Details -->
-        <div class="profile-column">
+        <div class="profile-column" data-section="account">
           <h4 class="profile-section-title">Detail Akun</h4>
 
           <div class="form-group">
@@ -106,16 +107,22 @@
             <p class="form-hint">Nama ini akan tampil di dashboard.</p>
           </div>
 
-          <div class="form-group">
+          <div class="form-group" data-group="student-id">
             <label for="profile-student-id">Student ID</label>
-            <input type="text" id="profile-student-id" class="form-input readonly-style" readonly
-              data-profile-student-id placeholder="ID akan muncul setelah login"
-              style="background-color: #e9ecef; cursor: default;" />
+            <div class="student-id-card">
+              <span class="id-icon">🆔</span>
+              <input type="text" id="profile-student-id" class="id-value" readonly data-profile-student-id
+                placeholder="-" />
+              <button type="button" class="copy-id-btn" title="Salin ID"
+                onclick="navigator.clipboard.writeText(document.getElementById('profile-student-id').value); this.innerText='✓'; setTimeout(()=>this.innerText='❐', 1000)">
+                ❐
+              </button>
+            </div>
           </div>
         </div>
 
         <!-- Right Column: Academic Details -->
-        <div class="profile-column">
+        <div class="profile-column" data-section="academic">
           <h4 class="profile-section-title">Detail Akademik</h4>
 
           <div class="form-group">
@@ -132,14 +139,23 @@
 
           <div class="form-group">
             <label for="profile-learning-path">Learning Path</label>
-            <select id="profile-learning-path" name="learning_path" data-profile-learning-path>
+
+            <!-- Read-only Display Mode (Better UI) -->
+            <div id="learning-path-badge-container" hidden>
+              <div class="learning-path-badge">
+                <span class="lp-icon">🎓</span>
+                <span id="learning-path-display-text">Path Loading...</span>
+              </div>
+            </div>
+
+            <!-- Select Mode -->
+            <select id="profile-learning-path" name="learning_path" data-profile-learning-path class="modern-select">
               <option value="">Pilih Learning Path</option>
               <option value="Machine Learning (ML)">Machine Learning (ML)</option>
               <option value="Front-End Web & Back-End with AI (FEBE)">Front-End Web & Back-End with AI (FEBE)</option>
               <option value="React & Back-End with AI (REBE)">React & Back-End with AI (REBE)</option>
             </select>
-            <input type="text" id="profile-learning-path-display" class="form-input readonly-style" readonly hidden
-              data-profile-learning-path-display />
+
             <p class="form-hint warning-text">
               ⚠️ Learning Path hanya bisa diset <strong>SEKALI</strong>.
             </p>

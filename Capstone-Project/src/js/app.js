@@ -12,6 +12,7 @@ import { AdminTeamInfoPage } from "./components/adminTeamInfo.js";
 import { AdminDocumentsPage } from "./components/adminDocuments.js";
 import { AdminWorksheetPage } from "./components/adminWorksheet.js";
 import { AdminFeedbackPage } from "./components/adminFeedback.js";
+import { AdminUnassignedPage } from "./components/adminUnassigned.js";
 import { TimelinePage } from "./components/timeline.js";
 import { DeliverablesPage } from "./components/deliverables.js";
 import { TeamRegistrationPage } from "./components/teamRegistration.js";
@@ -109,7 +110,7 @@ class App {
   registerRoutes() {
     // Landing page (public)
     this.router.addRoute("/", LandingPage);
-    
+
     // Auth routes (public)
     this.router.addRoute("/login", LoginPage);
     this.router.addRoute("/register", RegisterPage);
@@ -128,6 +129,7 @@ class App {
     this.router.addRoute("/admin-dokumen-timeline", AdminDocumentsPage);
     this.router.addRoute("/admin-individual-worksheet", AdminWorksheetPage);
     this.router.addRoute("/admin-360-feedback", AdminFeedbackPage);
+    this.router.addRoute("/admin-unassigned-students", AdminUnassignedPage);
 
     // Timeline route (protected)
     this.router.addRoute("/timeline", TimelinePage);
@@ -229,6 +231,12 @@ class App {
           this.handleEditGroup(form);
           return;
         }
+        if (form.matches('[data-edit-member-form]')) {
+          event.preventDefault();
+          this.handleUpdateUserLearningPath(form);
+          return;
+        }
+
         if (form.matches('[data-form="registration-period"]')) {
           event.preventDefault();
           this.handleRegistrationPeriod(form);
@@ -239,9 +247,32 @@ class App {
           this.handleRandomizeTeams(form);
           return;
         }
+        if (form.matches('[data-form="create-period"]')) {
+          event.preventDefault();
+          this.handleCreatePeriod(form);
+          return;
+        }
         if (form.matches('[data-form="upload-members"]')) {
           event.preventDefault();
           this.handleUploadMembers(form);
+          return;
+        }
+
+        if (form.matches('[data-add-member-form]')) {
+          event.preventDefault();
+          this.handleAddMemberSubmit(form);
+          return;
+        }
+
+        if (form.matches('[data-form="create-timeline"]')) {
+          event.preventDefault();
+          this.handleCreateTimeline(form);
+          return;
+        }
+
+        if (form.matches('[data-form="edit-timeline"]')) {
+          event.preventDefault();
+          this.handleEditTimeline(form);
           return;
         }
 
@@ -268,6 +299,12 @@ class App {
         if (form.matches("[data-deliverable-form]")) {
           event.preventDefault();
           this.handleDeliverableSubmit(form);
+          return;
+        }
+
+        if (form.matches("[data-randomize-form]")) {
+          event.preventDefault();
+          this.handleRandomizeTeams(form);
           return;
         }
 
@@ -372,10 +409,10 @@ class App {
 
       // Handle table row click for viewing group detail (only if not clicking on a button)
       const groupRow = event.target.closest("tr[data-view-group]");
-      if (groupRow && 
-          !event.target.closest("button") && 
-          !event.target.closest("a") &&
-          !event.target.closest("[data-view-group]")?.matches("button")) {
+      if (groupRow &&
+        !event.target.closest("button") &&
+        !event.target.closest("a") &&
+        !event.target.closest("[data-view-group]")?.matches("button")) {
         event.preventDefault();
         const groupId = groupRow.dataset.viewGroup || groupRow.dataset.groupId;
         console.log("[App] Row clicked, groupId:", groupId);
@@ -464,11 +501,38 @@ class App {
         this.exportFeedbackData();
       }
 
+
+
       const editMemberBtn = event.target.closest("[data-edit-member]");
       if (editMemberBtn) {
         event.preventDefault();
-        const userId = editMemberBtn.dataset.editMember;
-        this.openEditMemberModal(userId);
+        const memberId = editMemberBtn.dataset.editMember;
+        const groupId = editMemberBtn.dataset.groupId;
+        this.openEditMemberModal(groupId, memberId);
+      }
+
+      // Randomize Modal Handlers
+      const openRandomizeBtn = event.target.closest("[data-open-randomize-modal]");
+      if (openRandomizeBtn) {
+        event.preventDefault();
+        console.log("[App] Randomize button clicked");
+        const modal = document.getElementById("randomize-modal");
+        if (modal) {
+          console.log("[App] Opening modal");
+          modal.hidden = false;
+          modal.style.display = "flex"; // Force flex
+        } else {
+          console.error("[App] Randomize modal not found in DOM");
+        }
+      }
+
+      if (event.target.matches("[data-close-randomize-modal]") || event.target.closest("[data-close-randomize-modal]")) {
+        event.preventDefault();
+        const modal = document.getElementById("randomize-modal");
+        if (modal) {
+          modal.hidden = true;
+          modal.style.display = "none";
+        }
       }
 
       const uploadMembersBtn = event.target.closest("[data-upload-members]");
@@ -477,6 +541,81 @@ class App {
         const groupId = uploadMembersBtn.dataset.uploadMembers;
         this.openUploadMembersModal(groupId);
       }
+
+      // Generic open modal handler
+      const openModalBtn = event.target.closest("[data-open-modal]");
+      if (openModalBtn) {
+        event.preventDefault();
+        const modalName = openModalBtn.dataset.openModal;
+        const modal = document.querySelector(`.modal[data-modal="${modalName}"]`);
+        const backdrop = document.querySelector("[data-modal-backdrop]");
+
+        if (modal && backdrop) {
+          modal.hidden = false;
+          backdrop.hidden = false;
+        } else {
+          console.warn(`Modal ${modalName} not found`);
+        }
+      }
+      // Add Member Modal Handlers
+      const openAddMemberBtn = event.target.closest("[data-open-add-member]");
+      if (openAddMemberBtn) {
+        event.preventDefault();
+        const groupId = openAddMemberBtn.dataset.openAddMember;
+        const modal = document.getElementById("add-member-modal");
+
+        // Ensure the hidden input has the correct group ID
+        if (modal) {
+          const form = modal.querySelector('form');
+          if (form) {
+            const groupInput = form.querySelector('[name="group_id"]');
+            if (groupInput) groupInput.value = groupId;
+          }
+          modal.hidden = false;
+          modal.style.display = "flex";
+        }
+      }
+
+      if (event.target.matches("[data-close-add-member-modal]") || event.target.closest("[data-close-add-member-modal]")) {
+        event.preventDefault();
+        const modal = document.getElementById("add-member-modal");
+        if (modal) {
+          modal.hidden = true;
+          modal.style.display = "none";
+        }
+      }
+
+      // Remove Member Handler
+      const removeMemberBtn = event.target.closest("[data-remove-member]");
+      if (removeMemberBtn) {
+        event.preventDefault();
+        const userId = removeMemberBtn.dataset.removeMember;
+        const groupId = removeMemberBtn.dataset.groupId;
+        this.handleRemoveMember(groupId, userId);
+      }
+
+      // Edit Timeline Handler
+      const editTimelineBtn = event.target.closest("[data-edit-timeline]");
+      if (editTimelineBtn) {
+        event.preventDefault();
+        try {
+          const item = JSON.parse(editTimelineBtn.dataset.editTimeline);
+          this.openEditTimelineModal(item);
+        } catch (e) {
+          console.error("Failed to parse timeline item data", e);
+        }
+      }
+
+      // Delete Timeline Handler
+      const deleteTimelineBtn = event.target.closest("[data-delete-timeline]");
+      if (deleteTimelineBtn) {
+        event.preventDefault();
+        const id = deleteTimelineBtn.dataset.deleteTimeline;
+        if (confirm("Apakah Anda yakin ingin menghapus timeline ini? Aksi ini tidak dapat dibatalkan.")) {
+          this.handleDeleteTimeline(id);
+        }
+      }
+
     });
 
     // Handle validate status change
@@ -520,6 +659,24 @@ class App {
         });
       }
 
+      // Edit Member Handler
+      const openEditMemberBtn = event.target.closest("[data-edit-member]");
+      if (openEditMemberBtn) {
+        event.preventDefault();
+        const memberId = openEditMemberBtn.dataset.editMember;
+        const groupId = openEditMemberBtn.dataset.groupId;
+        this.openEditMemberModal(groupId, memberId);
+      }
+
+      if (event.target.matches("[data-close-edit-member-modal]") || event.target.closest("[data-close-edit-member-modal]")) {
+        event.preventDefault();
+        const modal = document.getElementById("edit-member-modal");
+        if (modal) {
+          modal.hidden = true;
+          modal.style.display = "none";
+        }
+      }
+
       // Handle auto validate enabled checkbox
       if (event.target.matches('[name="auto_validate_enabled"]')) {
         const deadlineInput = document.getElementById('worksheet-deadline-input');
@@ -559,7 +716,7 @@ class App {
 
     try {
       this.toggleSubmitLoading(form, true);
-      await createAdminGroup(payload);
+      await createGroup(payload);
       this.showToast("Grup berhasil dibuat ✅");
       form.reset();
       const panel = document.querySelector("[data-create-group-panel]");
@@ -640,6 +797,117 @@ class App {
     }
   }
 
+  async handleCreateTimeline(form) {
+    this.resetFormState(form);
+    const formData = new FormData(form);
+
+    // Ensure dates are in YYYY-MM-DD format if date input is used
+    const startAt = formData.get("start_at");
+    const endAt = formData.get("end_at");
+
+    const payload = {
+      title: formData.get("title")?.trim(),
+      description: formData.get("description")?.trim(),
+      start_at: startAt,
+      end_at: endAt,
+      batch_id: formData.get("batch_id")?.trim()
+    };
+
+    if (!payload.title || !payload.start_at || !payload.end_at || !payload.batch_id) {
+      this.showFormFeedback(form, "Mohon lengkapi semua field wajib", true);
+      return;
+    }
+
+    try {
+      this.toggleSubmitLoading(form, true);
+      const { createTimeline } = await import("./services/adminService.js");
+      await createTimeline(payload);
+      this.showToast("Timeline berhasil dibuat ✅");
+      this.closeModal();
+      form.reset();
+      this.router.loadRoute();
+    } catch (error) {
+      this.applyApiErrors(form, error);
+    } finally {
+      this.toggleSubmitLoading(form, false);
+    }
+  }
+
+  // Edit Timeline
+  openEditTimelineModal(item) {
+    const modal = document.querySelector('[data-modal="edit-timeline"]');
+    const backdrop = document.querySelector("[data-modal-backdrop]");
+    const form = modal?.querySelector('form');
+
+    if (modal && backdrop && form) {
+      form.querySelector('[name="id"]').value = item.id;
+      form.querySelector('[name="title"]').value = item.title;
+      form.querySelector('[name="description"]').value = item.description || '';
+
+      // Helper to format date for datetime-local input (YYYY-MM-DDTHH:mm)
+      const toDatetimeLocal = (isoString) => {
+        if (!isoString) return '';
+        const date = new Date(isoString);
+        const pad = (num) => String(num).padStart(2, '0');
+        const year = date.getFullYear();
+        const month = pad(date.getMonth() + 1);
+        const day = pad(date.getDate());
+        const hours = pad(date.getHours());
+        const minutes = pad(date.getMinutes());
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
+      };
+
+      form.querySelector('[name="start_at"]').value = toDatetimeLocal(item.start_at);
+      form.querySelector('[name="end_at"]').value = toDatetimeLocal(item.end_at);
+
+      modal.hidden = false;
+      backdrop.hidden = false;
+    }
+  }
+
+  async handleEditTimeline(form) {
+    this.resetFormState(form);
+    const formData = new FormData(form);
+    const id = formData.get("id");
+
+    const payload = {
+      title: formData.get("title")?.trim(),
+      description: formData.get("description")?.trim(),
+      start_at: formData.get("start_at"),
+      end_at: formData.get("end_at")
+    };
+
+    if (!payload.title || !payload.start_at || !payload.end_at) {
+      this.showFormFeedback(form, "Mohon lengkapi semua field wajib", true);
+      return;
+    }
+
+    try {
+      this.toggleSubmitLoading(form, true);
+      const { updateTimeline } = await import("./services/adminService.js");
+      await updateTimeline(id, payload);
+      this.showToast("Timeline berhasil diperbarui ✅");
+      this.closeModal();
+      form.reset();
+      this.router.loadRoute();
+    } catch (error) {
+      this.applyApiErrors(form, error);
+    } finally {
+      this.toggleSubmitLoading(form, false);
+    }
+  }
+
+  async handleDeleteTimeline(id) {
+    try {
+      const { deleteTimeline } = await import("./services/adminService.js");
+      await deleteTimeline(id);
+      this.showToast("Timeline berhasil dihapus ✅");
+      this.router.loadRoute();
+    } catch (error) {
+      this.showToast(error.message || "Gagal menghapus timeline", true);
+    }
+  }
+
 
   async handleStartProject(groupId) {
     try {
@@ -683,7 +951,7 @@ class App {
       console.log("[openEditGroupModal] Opening edit modal for groupId:", groupId);
       const { listAllGroups } = await import("./services/adminService.js");
       const response = await listAllGroups();
-      
+
       // Handle different response structures
       let groups = [];
       if (response?.data && Array.isArray(response.data)) {
@@ -693,9 +961,9 @@ class App {
       } else if (Array.isArray(response)) {
         groups = response;
       }
-      
+
       console.log("[openEditGroupModal] Groups fetched:", groups.length);
-      
+
       // Normalize field names - same as in AdminTeamInfoPage
       const normalizedGroups = groups.map(group => ({
         group_id: group.group_id || group.id || group.groupId || null,
@@ -706,7 +974,7 @@ class App {
         members: group.members || group.group_members || [],
         ...group // Keep all other fields
       }));
-      
+
       // Find group with multiple matching strategies
       const group = normalizedGroups.find((g) => {
         const gId = g.group_id || g.id || g.groupId;
@@ -748,6 +1016,12 @@ class App {
       if (statusInput) {
         const statusValue = (group.status || "pending").toLowerCase();
         statusInput.value = statusValue;
+
+        // Toggle rejection reason visibility
+        const reasonGroup = form.querySelector("[data-rejection-reason-group]");
+        if (reasonGroup) {
+          reasonGroup.hidden = statusValue !== "rejected";
+        }
       }
 
       console.log("[openEditGroupModal] Form populated:", {
@@ -819,57 +1093,56 @@ class App {
   async viewGroupDetail(groupId) {
     try {
       console.log("[viewGroupDetail] Opening detail for groupId:", groupId);
-      const { listAllGroups } = await import("./services/adminService.js");
+      const { getGroupById } = await import("./services/adminService.js");
       const { getUseCases } = await import("./services/userService.js");
-      
-      // Fetch groups and use cases in parallel
-      const [groupsResponse, useCasesResponse] = await Promise.all([
-        listAllGroups(),
-        getUseCases().catch(() => ({ data: [] })) // Fallback if use cases fail
-      ]);
-      
-      // Handle different response structures
-      let groups = [];
-      if (groupsResponse?.data && Array.isArray(groupsResponse.data)) {
-        groups = groupsResponse.data;
-      } else if (groupsResponse?.groups && Array.isArray(groupsResponse.groups)) {
-        groups = groupsResponse.groups;
-      } else if (Array.isArray(groupsResponse)) {
-        groups = groupsResponse;
+
+      // Fetch specific group detail and use cases
+      let groupResponse = null;
+      let useCasesResponse = null;
+
+      try {
+        [groupResponse, useCasesResponse] = await Promise.all([
+          getGroupById(groupId).catch(e => {
+            console.warn("[viewGroupDetail] Failed to fetch group detail:", e);
+            return null;
+          }),
+          getUseCases().catch(() => ({ data: [] }))
+        ]);
+      } catch (e) {
+        console.error("[viewGroupDetail] Critical error fetching data", e);
       }
-      
+
+      // If group response failed (null or error), try to proceed or show error
+      if (!groupResponse) {
+        this.showToast("Gagal mengambil detail grup dari server. Menampilkan data terbatas jika ada.", true);
+        // Optionally try to find from existing list if available in DOM
+      }
+
+      // Normalize group data from specific endpoint
+      const rawGroup = groupResponse?.data || groupResponse || {};
+
+      const group = {
+        group_id: rawGroup.group_id || rawGroup.id || rawGroup.groupId || null,
+        group_name: rawGroup.group_name || rawGroup.name || rawGroup.groupName || "-",
+        batch_id: rawGroup.batch_id || rawGroup.batchId || "-",
+        status: rawGroup.status || rawGroup.group_status || "pending",
+        project_status: rawGroup.project_status || rawGroup.projectStatus || "not_started",
+        members: rawGroup.members || rawGroup.group_members || rawGroup.users || [],
+        use_case_source_id: rawGroup.use_case_source_id || rawGroup.use_case_id || rawGroup.use_case_ref || null,
+        use_case_name: rawGroup.use_case_name || rawGroup.use_case || null,
+        description: rawGroup.description || rawGroup.desc || null,
+        ...rawGroup // Keep other fields
+      };
+
       const useCases = useCasesResponse?.data || [];
-      
-      // Normalize field names - same as in AdminTeamInfoPage
-      const normalizedGroups = groups.map(group => ({
-        group_id: group.group_id || group.id || group.groupId || null,
-        group_name: group.group_name || group.name || group.groupName || "-",
-        batch_id: group.batch_id || group.batchId || "-",
-        status: group.status || group.group_status || "pending",
-        project_status: group.project_status || group.projectStatus || "not_started",
-        members: group.members || group.group_members || group.users || [],
-        use_case_source_id: group.use_case_source_id || group.use_case_id || group.use_case_ref || null,
-        use_case_name: group.use_case_name || group.use_case || null,
-        description: group.description || group.desc || null,
-        ...group // Keep all other fields
-      }));
-      
-      // Find group with multiple matching strategies
-      const group = normalizedGroups.find((g) => {
-        const gId = g.group_id || g.id || g.groupId;
-        return (
-          gId === groupId ||
-          String(gId) === String(groupId) ||
-          gId?.toString() === groupId?.toString()
-        );
-      });
 
-      console.log("[viewGroupDetail] Group found:", group);
-      console.log("[viewGroupDetail] Group members:", group?.members);
+      // Log fetched group data
+      console.log("[viewGroupDetail] Group fetched:", group);
+      console.log("[viewGroupDetail] Group members:", group.members);
 
-      if (!group) {
-        console.error("[viewGroupDetail] Group not found. Available IDs:", normalizedGroups.map(g => g.group_id || g.id));
-        this.showToast("Detail tim tidak ditemukan");
+      if (!group.group_id) {
+        console.error("[viewGroupDetail] Group ID missing in response");
+        this.showToast("Gagal memuat detail tim");
         return;
       }
 
@@ -910,7 +1183,7 @@ class App {
 
       // Render the detail content
       contentArea.innerHTML = window.renderGroupDetail(group);
-      
+
       // Show modal and backdrop
       if (modal && backdrop) {
         modal.hidden = false;
@@ -1113,11 +1386,11 @@ class App {
   toggleSubmitLoading(form, isLoading) {
     const submitButton = form.querySelector('[type="submit"]');
     if (!submitButton) return;
-    
+
     // Handle button with btn-text and btn-loading spans (team registration)
     const btnText = submitButton.querySelector('.btn-text');
     const btnLoading = submitButton.querySelector('.btn-loading');
-    
+
     if (btnText && btnLoading) {
       if (isLoading) {
         btnText.hidden = true;
@@ -1130,7 +1403,7 @@ class App {
       }
       return;
     }
-    
+
     // Fallback for buttons without spans
     const originalText =
       submitButton.dataset.submitText || submitButton.textContent;
@@ -1255,6 +1528,36 @@ class App {
         } else {
           this.profilePanel.classList.remove('admin-theme');
         }
+
+        // Hide Student/Academic fields for Admin
+        const academicSection = this.profilePanel.querySelector('[data-section="academic"]');
+        const studentIdGroup = this.profilePanel.querySelector('[data-group="student-id"]');
+        const accountSectionTitle = this.profilePanel.querySelector('[data-section="account"] .profile-section-title');
+
+        if (isAdmin) {
+          if (academicSection) academicSection.style.display = 'none';
+          if (studentIdGroup) studentIdGroup.style.display = 'none';
+          if (accountSectionTitle) accountSectionTitle.textContent = "Detail Admin";
+
+          // Center the account section if academic is hidden
+          const profileGrid = this.profilePanel.querySelector('.profile-grid');
+          if (profileGrid) {
+            profileGrid.style.gridTemplateColumns = "1fr";
+            profileGrid.style.maxWidth = "500px";
+            profileGrid.style.margin = "0 auto";
+          }
+        } else {
+          if (academicSection) academicSection.style.display = '';
+          if (studentIdGroup) studentIdGroup.style.display = '';
+          if (accountSectionTitle) accountSectionTitle.textContent = "Detail Akun";
+          // Reset grid styles
+          const profileGrid = this.profilePanel.querySelector('.profile-grid');
+          if (profileGrid) {
+            profileGrid.style.gridTemplateColumns = "";
+            profileGrid.style.maxWidth = "";
+            profileGrid.style.margin = "";
+          }
+        }
       }
 
       const avatarValue = session.user.avatar || "male";
@@ -1266,43 +1569,30 @@ class App {
 
       // Populate learning_path, university, learning_group
       // Populate learning_path, university, learning_group
-      const learningPathSelect = form.querySelector("[data-profile-learning-path]");
-      const learningPathDisplay = form.querySelector("[data-profile-learning-path-display]");
+      const lpContainer = form.querySelector("#learning-path-badge-container");
+      const lpBadgeText = form.querySelector("#learning-path-display-text");
+      const lpSelect = form.querySelector('[data-profile-learning-path]');
 
-      if (learningPathSelect) {
+      if (lpSelect) {
         const currentLearningPath = profileData.learning_path || "";
 
-        // Toggle between Select (Edit) and Input (Readonly)
         if (currentLearningPath) {
-          // MODE: LOCKED / READONLY
-          // Show the input field with the text from DB
-          if (learningPathDisplay) {
-            learningPathDisplay.hidden = false;
-            learningPathDisplay.value = currentLearningPath;
-            learningPathDisplay.style.backgroundColor = "#e9ecef";
-            learningPathDisplay.style.cursor = "default";
-            // Optional: visual clue it's locked
-            learningPathDisplay.title = "Learning Path sudah diset";
-          }
-          // Hide the select dropdown
-          learningPathSelect.hidden = true;
-          learningPathSelect.disabled = true;
-        } else {
-          // MODE: EDIT
-          // Show the select dropdown
-          learningPathSelect.hidden = false;
-          learningPathSelect.disabled = false;
-          learningPathSelect.value = "";
-          learningPathSelect.style.backgroundColor = "";
-          learningPathSelect.style.cursor = "pointer";
+          // Mode: LOCKED (Badge)
+          lpSelect.value = currentLearningPath;
+          lpSelect.hidden = true;
 
-          // Hide the input field
-          if (learningPathDisplay) {
-            learningPathDisplay.hidden = true;
-            learningPathDisplay.value = "";
-          }
+          if (lpContainer) lpContainer.hidden = false;
+          if (lpBadgeText) lpBadgeText.textContent = currentLearningPath;
+        } else {
+          // Mode: EDIT (Select)
+          lpSelect.value = "";
+          lpSelect.hidden = false;
+          lpSelect.disabled = false;
+
+          if (lpContainer) lpContainer.hidden = true;
         }
       }
+
 
       const universityInput = form.querySelector("[data-profile-university]");
       if (universityInput) {
@@ -1493,13 +1783,12 @@ class App {
     const formData = new FormData(form);
 
     const payload = {
-      period_start: formData.get("period_start")?.trim() || "",
-      period_end: formData.get("period_end")?.trim() || "",
+      period_id: formData.get("period_id")?.trim() || "",
       activity_description: formData.get("activity_description")?.trim() || "",
       proof_url: formData.get("proof_url")?.trim() || "",
     };
 
-    if (!payload.period_start || !payload.period_end || !payload.activity_description || !payload.proof_url) {
+    if (!payload.period_id || !payload.activity_description || !payload.proof_url) {
       this.showToast("Lengkapi seluruh field worksheet.");
       return;
     }
@@ -1767,6 +2056,57 @@ class App {
     if (backdrop) backdrop.hidden = true;
   }
 
+  async handleEditGroup(form) {
+    this.resetFormState(form);
+    const formData = new FormData(form);
+    const groupId = formData.get("group_id");
+    const status = formData.get("status");
+
+    // Rejection reason validation
+    if (status === "rejected") {
+      const reason = formData.get("rejection_reason")?.trim();
+      if (!reason) {
+        this.showFormFeedback(form, "Alasan penolakan wajib diisi untuk status Rejected", true);
+        const reasonGroup = form.querySelector("[data-rejection-reason-group]");
+        if (reasonGroup) reasonGroup.hidden = false;
+        return;
+      }
+    }
+
+    try {
+      this.toggleSubmitLoading(form, true);
+      const { updateAdminGroup, validateGroupRegistration } = await import("./services/adminService.js");
+
+      // 1. Update basic info (Name, Batch, etc.)
+      const updatePayload = {
+        group_name: formData.get("group_name")?.trim(),
+        batch_id: formData.get("batch_id")?.trim(),
+        status: status // Update status in DB
+      };
+
+      await updateAdminGroup(groupId, updatePayload);
+
+      // 2. Trigger Validation Logic (Email & Reason) if Accepted/Rejected
+      // This ensures the email is sent even if the update endpoint doesn't handle it
+      if (status === "accepted" || status === "rejected") {
+        const validationPayload = { status: status };
+        if (status === "rejected") {
+          validationPayload.rejection_reason = formData.get("rejection_reason")?.trim();
+        }
+        await validateGroupRegistration(groupId, validationPayload);
+      }
+
+      this.showToast("Data tim berhasil diperbarui ✅");
+      this.closeModal();
+      this.router.loadRoute();
+    } catch (error) {
+      console.error("Error editing group:", error);
+      this.applyApiErrors(form, error);
+    } finally {
+      this.toggleSubmitLoading(form, false);
+    }
+  }
+
   async handleCreateGroup(form) {
     this.resetFormState(form);
     const formData = new FormData(form);
@@ -1871,8 +2211,8 @@ class App {
       const { listAllGroups } = await import("./services/adminService.js");
       const response = await listAllGroups();
       const groups = response?.data || response?.groups || response || [];
-      const group = groups.find((g) => 
-        (g.group_id || g.id) === groupId || 
+      const group = groups.find((g) =>
+        (g.group_id || g.id) === groupId ||
         String(g.group_id || g.id) === String(groupId)
       );
 
@@ -1914,7 +2254,7 @@ class App {
     }
 
     if (confirmationMessage) {
-      confirmationMessage.textContent = action === "accept" 
+      confirmationMessage.textContent = action === "accept"
         ? "Apakah Anda yakin ingin menerima tim ini? Tim yang diterima dapat memulai proyek capstone."
         : "Apakah Anda yakin ingin menolak tim ini? Pastikan alasan penolakan sudah diisi.";
     }
@@ -1944,7 +2284,7 @@ class App {
     const formData = new FormData(form);
     const groupId = formData.get("group_id");
     const status = formData.get("status") || formData.get("action");
-    
+
     // Normalize status
     let normalizedStatus = status;
     if (status === "accept" || status === "accepted") {
@@ -1952,13 +2292,15 @@ class App {
     } else if (status === "reject" || status === "rejected") {
       normalizedStatus = "rejected";
     }
-    
+
+    const reason = formData.get("rejection_reason")?.trim(); // Moved up for payload
+
     const payload = {
       status: normalizedStatus,
+      rejection_reason: normalizedStatus === "rejected" ? reason : ""
     };
 
     if (normalizedStatus === "rejected") {
-      const reason = formData.get("rejection_reason")?.trim();
       if (!reason) {
         this.showFormFeedback(form, "Alasan penolakan wajib diisi", true);
         const reasonRow = form.querySelector("[data-rejection-reason-row]");
@@ -2010,7 +2352,7 @@ class App {
     try {
       this.showToast("Mengekspor data tim...");
       const { exportTeamsData, listAllGroups } = await import("./services/adminService.js");
-      
+
       // Try to use export endpoint first, fallback to listAllGroups
       let data = [];
       try {
@@ -2031,10 +2373,10 @@ class App {
       const headers = ["Nama Tim", "Batch ID", "Status", "Jumlah Anggota", "Status Proyek", "Anggota"];
       const rows = data.map(group => {
         const members = group.members || [];
-        const memberNames = members.map(m => 
+        const memberNames = members.map(m =>
           m.full_name || m.name || m.email || "Unknown"
         ).join("; ");
-        
+
         return [
           group.group_name || group.name || "-",
           group.batch_id || "-",
@@ -2074,10 +2416,10 @@ class App {
       const { getStudentsWithoutTeam } = await import("./services/adminService.js");
       const response = await getStudentsWithoutTeam();
       const students = response?.data || response || [];
-      
+
       const modal = document.querySelector('[data-modal="randomize-teams"]');
       const backdrop = document.querySelector("[data-modal-backdrop]");
-      
+
       if (modal && backdrop) {
         // Show count of students without team
         const form = modal.querySelector('form');
@@ -2087,7 +2429,7 @@ class App {
             infoText.textContent = `Terdapat ${students.length} peserta yang belum memiliki tim. Fitur ini akan secara otomatis membentuk tim untuk mereka berdasarkan progres belajar.`;
           }
         }
-        
+
         modal.hidden = false;
         backdrop.hidden = false;
       }
@@ -2102,11 +2444,11 @@ class App {
       const { getRegistrationPeriod } = await import("./services/adminService.js");
       const response = await getRegistrationPeriod();
       const period = response?.data || response || {};
-      
+
       const modal = document.querySelector('[data-modal="registration-period"]');
       const backdrop = document.querySelector("[data-modal-backdrop]");
       const form = modal?.querySelector('form');
-      
+
       if (modal && backdrop && form) {
         // Populate form if period exists
         if (period.start_date) {
@@ -2117,7 +2459,7 @@ class App {
             startInput.value = startDate.toISOString().slice(0, 16);
           }
         }
-        
+
         if (period.end_date) {
           const endInput = form.querySelector('[name="end_date"]');
           if (endInput) {
@@ -2125,14 +2467,14 @@ class App {
             endInput.value = endDate.toISOString().slice(0, 16);
           }
         }
-        
+
         if (period.is_active !== undefined) {
           const activeCheckbox = form.querySelector('[name="is_active"]');
           if (activeCheckbox) {
             activeCheckbox.checked = period.is_active;
           }
         }
-        
+
         modal.hidden = false;
         backdrop.hidden = false;
       }
@@ -2210,7 +2552,7 @@ class App {
         localStorage.setItem('worksheet-deadline', deadline);
       }
       localStorage.setItem('worksheet-deadline-enabled', enabled.toString());
-      
+
       // Setup auto validation
       if (enabled && deadline) {
         this.setupAutoValidation(deadline);
@@ -2223,7 +2565,7 @@ class App {
         }
         this.showToast("Validasi otomatis dinonaktifkan");
       }
-      
+
       // Reload untuk update UI
       this.router.loadRoute();
     } catch (error) {
@@ -2239,7 +2581,7 @@ class App {
 
     const deadline = new Date(deadlineStr);
     const now = new Date();
-    
+
     if (deadline <= now) {
       this.showToast("Deadline harus di masa depan", true);
       return;
@@ -2247,7 +2589,7 @@ class App {
 
     // Calculate time until deadline
     const timeUntilDeadline = deadline.getTime() - now.getTime();
-    
+
     // Set interval to check every minute
     this.autoValidationInterval = setInterval(async () => {
       const currentTime = new Date();
@@ -2269,11 +2611,11 @@ class App {
     try {
       this.showToast("Memulai validasi otomatis...", false);
       const { listAllWorksheets, validateWorksheet } = await import("./services/adminService.js");
-      
+
       // Get all submitted worksheets
       const response = await listAllWorksheets('submitted');
       const worksheets = response?.data || [];
-      
+
       if (worksheets.length === 0) {
         this.showToast("Tidak ada worksheet yang perlu divalidasi");
         return;
@@ -2286,7 +2628,7 @@ class App {
       for (const ws of worksheets) {
         try {
           await validateWorksheet(ws.id, {
-            status: 'approved',
+            status: 'completed',
             feedback: 'Validasi otomatis berdasarkan deadline'
           });
           successCount++;
@@ -2297,7 +2639,7 @@ class App {
       }
 
       this.showToast(`Validasi otomatis selesai: ${successCount} berhasil, ${errorCount} gagal`);
-      
+
       // Reload page to show updated data
       this.router.loadRoute();
     } catch (error) {
@@ -2322,7 +2664,7 @@ class App {
     try {
       this.showToast("Memproses validasi...", false);
       const { validateWorksheet } = await import("./services/adminService.js");
-      
+
       // Validate each worksheet individually since bulk endpoint may not exist
       let successCount = 0;
       let errorCount = 0;
@@ -2330,7 +2672,7 @@ class App {
       for (const worksheetId of worksheetIds) {
         try {
           await validateWorksheet(worksheetId, {
-            status: 'approved',
+            status: 'completed',
             feedback: 'Validasi manual oleh admin'
           });
           successCount++;
@@ -2355,7 +2697,7 @@ class App {
   async exportWorksheetsData() {
     try {
       this.showToast("Menyiapkan export data...", false);
-      
+
       // Fetch all worksheets directly from the existing API
       const { listAllWorksheets } = await import("./services/adminService.js");
       const wsResponse = await listAllWorksheets();
@@ -2409,7 +2751,7 @@ class App {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
       // Clean up the URL object
       URL.revokeObjectURL(url);
 
@@ -2419,6 +2761,8 @@ class App {
       this.showToast("Gagal mengekspor data. Pastikan data worksheet tersedia.", true);
     }
   }
+
+
 
   async exportFeedbackData() {
     try {
@@ -2534,6 +2878,114 @@ class App {
     }
   }
 
+  async handleAddMemberSubmit(form) {
+    const formData = new FormData(form);
+    const groupId = formData.get("group_id");
+    const userId = formData.get("user_id")?.trim();
+
+    if (!groupId || !userId) {
+      this.showToast("Group ID dan User ID wajib diisi", true);
+      return;
+    }
+
+    try {
+      this.toggleSubmitLoading(form, true);
+      const { addMemberToGroup } = await import("./services/adminService.js");
+      await addMemberToGroup(groupId, { user_id: userId });
+
+      this.showToast("Anggota berhasil ditambahkan ✅");
+      form.reset();
+
+      // Hide modal
+      const modal = document.getElementById("add-member-modal");
+      if (modal) {
+        modal.hidden = true;
+        modal.style.display = "none";
+      }
+
+      // Reload page
+      this.router.loadRoute();
+    } catch (error) {
+      this.applyApiErrors(form, error);
+      this.showToast(error.message || "Gagal menambahkan anggota", true);
+    } finally {
+      this.toggleSubmitLoading(form, false);
+    }
+  }
+
+  async handleRemoveMember(groupId, userId) {
+    if (!confirm("Apakah Anda yakin ingin menghapus anggota ini dari tim?")) {
+      return;
+    }
+
+    try {
+      this.showToast("Menghapus anggota...", false);
+      const { removeMemberFromGroup } = await import("./services/adminService.js");
+      await removeMemberFromGroup(groupId, userId);
+
+      this.showToast("Anggota berhasil dihapus dari tim 🗑️");
+
+      // Reload page
+      this.router.loadRoute();
+    } catch (error) {
+      console.error("Error removing member:", error);
+      this.showToast(error.message || "Gagal menghapus anggota", true);
+    }
+  }
+
+  openEditMemberModal(groupId, userId) {
+    const modal = document.getElementById("edit-member-modal");
+    if (modal) {
+      const form = modal.querySelector('form');
+      if (form) {
+        form.reset();
+        const userInput = form.querySelector('[name="user_id"]');
+        const groupInput = form.querySelector('[name="group_id"]');
+        if (userInput) userInput.value = userId;
+        if (groupInput) groupInput.value = groupId;
+      }
+      modal.hidden = false;
+      modal.style.display = "flex";
+    } else {
+      console.error("Edit Member Modal not found");
+    }
+  }
+
+  async handleUpdateUserLearningPath(form) {
+    const formData = new FormData(form);
+    const userId = formData.get("user_id");
+    const learningPath = formData.get("learning_path");
+
+    if (!userId || !learningPath) {
+      this.showToast("User ID dan Learning Path wajib diisi", true);
+      return;
+    }
+
+    try {
+      this.toggleSubmitLoading(form, true);
+      const { updateUserLearningPath } = await import("./services/adminService.js");
+      await updateUserLearningPath(userId, { learning_path: learningPath });
+
+      this.showToast("Learning Path berhasil diperbarui ✅");
+
+      // Hide modal
+      const modal = document.getElementById("edit-member-modal");
+      if (modal) {
+        modal.hidden = true;
+        modal.style.display = "none";
+      }
+
+      // Reload page
+      this.router.loadRoute();
+    } catch (error) {
+      console.error("Error updating learning path:", error);
+      this.showToast(error.message || "Gagal memperbarui learning path", true);
+    } finally {
+      this.toggleSubmitLoading(form, false);
+    }
+  }
+
+  // Handle Search Groups
   handleSearchGroups(searchTerm) {
     const rows = document.querySelectorAll("[data-groups-list] tr");
     const term = searchTerm.toLowerCase().trim();
@@ -2883,6 +3335,7 @@ class App {
     const teamSize = parseInt(formData.get("team_size")) || 5;
     const respectLearningPath = formData.get("respect_learning_path") === "on";
 
+
     if (!batchId) {
       this.showFormFeedback(form, "Batch ID wajib diisi", true);
       return;
@@ -2950,11 +3403,43 @@ class App {
     }
   }
 
+  async handleCreatePeriod(form) {
+    this.resetFormState(form);
+    const formData = new FormData(form);
+
+    const payload = {
+      title: formData.get("title")?.trim(),
+      start_date: formData.get("start_date"),
+      end_date: formData.get("end_date"),
+      batch_id: formData.get("batch_id")?.trim()
+    };
+
+    if (!payload.title || !payload.start_date || !payload.end_date || !payload.batch_id) {
+      this.showFormFeedback(form, "Mohon lengkapi semua field wajib", true);
+      return;
+    }
+
+    try {
+      this.toggleSubmitLoading(form, true);
+      const { createPeriod } = await import("./services/adminService.js");
+      await createPeriod(payload);
+      this.showToast("Periode berhasil dibuat ✅");
+      this.closeModal();
+      form.reset();
+      // Reload periods list in the modal manually or via router if needed. 
+      // For now, simple close is better. Extensibility: broadcast event.
+    } catch (error) {
+      this.applyApiErrors(form, error);
+    } finally {
+      this.toggleSubmitLoading(form, false);
+    }
+  }
+
   openUploadMembersModal(groupId) {
     const modal = document.querySelector('[data-modal="upload-members"]');
     const backdrop = document.querySelector("[data-modal-backdrop]");
     const form = modal?.querySelector('form');
-    
+
     if (modal && backdrop && form) {
       form.querySelector('[name="group_id"]').value = groupId;
       modal.hidden = false;
@@ -2962,6 +3447,7 @@ class App {
     }
   }
 }
+
 
 // Start the application when DOM is ready
 document.addEventListener("DOMContentLoaded", () => {

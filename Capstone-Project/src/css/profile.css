@@ -74,6 +74,8 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
+  min-width: 0;
+  width: 100%;
 }
 
 .avatar-card {
@@ -87,6 +89,10 @@
   cursor: pointer;
   transition: all 0.2s;
   position: relative;
+  box-sizing: border-box;
+  min-width: 0;
+  width: 100%;
+  overflow: hidden;
 }
 
 .avatar-card:hover {
@@ -112,11 +118,46 @@
 .profile-logout {
   color: var(--danger-color);
   border-color: var(--danger-color);
+  position: relative;
+  z-index: 10;
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  visibility: visible !important;
 }
 
 .profile-logout:hover {
   background: var(--danger-color);
   color: white;
+}
+
+.profile-logout:active {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: scale(0.98);
+}
+
+.profile-logout:focus {
+  opacity: 1 !important;
+  visibility: visible !important;
+  outline: 2px solid var(--danger-color);
+  outline-offset: 2px;
+}
+
+.profile-actions {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  gap: 1rem;
+  flex-direction: column;
+}
+
+.profile-actions .btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
 /* 2-Column Grid Layout for Larger Screens */
@@ -154,19 +195,23 @@
 
   .profile-column .form-group {
     padding: 0 1.5rem 1.5rem 1.5rem;
+    min-width: 0;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   /* Add top padding to first form-group */
   .profile-column .form-group:first-of-type {
     padding-top: 1.5rem;
   }
+  
+  .profile-column .form-group .avatar-options {
+    margin: 0;
+    width: 100%;
+  }
 
   .profile-actions {
-    margin-top: 2rem;
-    padding-top: 1.5rem;
-    border-top: 1px solid var(--border-color);
-    display: flex;
-    gap: 1rem;
+    flex-direction: row;
   }
 
   .profile-actions .btn {

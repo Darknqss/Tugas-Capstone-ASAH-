@@ -5,7 +5,7 @@ export async function TeamInfoPage() {
     // Default URLs from provided data
     const defaultPlaybookUrl = "https://docs.google.com/document/d/1z-HCRlfXRUPcoajplkAfQYCilrSVKvUnWsFR1iWpRSw/edit?tab=t.0#heading=h.prr63i3mvc13";
     const defaultUseCaseUrl = "https://docs.google.com/document/d/1eLAy7YapeT6jSzQ5D4LnK6dF5Wn_vIlPaap_8mrXRAY/edit?tab=t.sz6jqfw4pqyd#heading=h.v7gz6yhxhk72";
-    
+
     let playbookUrl = defaultPlaybookUrl;
     let useCaseUrl = defaultUseCaseUrl;
     let teamData = null;
@@ -14,19 +14,19 @@ export async function TeamInfoPage() {
     try {
         const docsResponse = await getDocs();
         const docs = docsResponse?.data || [];
-        
+
         // Find Capstone Playbook (capstone_docs_source_id: "1" or title contains "playbook")
-        const playbook = docs.find(doc => 
-            doc.capstone_docs_source_id === "1" || 
+        const playbook = docs.find(doc =>
+            doc.capstone_docs_source_id === "1" ||
             doc.title?.toLowerCase().includes("playbook")
         );
         if (playbook?.url) {
             playbookUrl = playbook.url;
         }
-        
+
         // Find Use Case document (capstone_docs_source_id: "2" or title contains "use-case")
-        const useCase = docs.find(doc => 
-            doc.capstone_docs_source_id === "2" || 
+        const useCase = docs.find(doc =>
+            doc.capstone_docs_source_id === "2" ||
             doc.title?.toLowerCase().includes("use-case") ||
             doc.title?.toLowerCase().includes("use case")
         );
@@ -47,10 +47,23 @@ export async function TeamInfoPage() {
         // Tidak perlu log error karena ini expected behavior
         teamData = null;
     }
-    
+
+    // Check if user has a team
+    const hasTeam = teamData?.members && teamData.members.length > 0;
+
+    // Render registration component (only show if user has NO team)
+    const registrationHtml = hasTeam ? '' : `
+        <div class="card">
+            <div class="registration-row">
+                <span class="registration-label">Regis Tim ini</span>
+                <a href="/team-registration" class="btn-registration" data-link>Registration Here</a>
+            </div>
+        </div>
+    `;
+
     // Render team members
     let teamMembersHtml = "";
-    if (teamData?.members && teamData.members.length > 0) {
+    if (hasTeam) {
         teamMembersHtml = `
             <div class="team-members-list">
                 <div class="team-info-header">
@@ -97,6 +110,8 @@ export async function TeamInfoPage() {
             </div>
 
             <div class="dashboard-grid" style="grid-template-columns: 1fr;">
+                ${registrationHtml}
+                
                 <div class="card">
                     <h2 class="card-title">Anggota Tim</h2>
                     ${teamMembersHtml}

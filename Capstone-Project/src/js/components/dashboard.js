@@ -101,17 +101,49 @@ export async function DashboardPage() {
             `;
         }
 
-        const itemsHtml = worksheetsData.slice(0, 5).map(item => `
-            <div class="list-item" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee;">
+        const getStatusLabel = (status) => {
+            const labels = {
+                'completed': 'Selesai',
+                'completed_late': 'Selesai Terlambat',
+                'missed': 'Tidak Selesai',
+                'pending': 'Belum Dikerjakan'
+            };
+            return labels[status] || status;
+        };
+
+        const getStatusClass = (status) => {
+            const classes = {
+                'completed': 'status-badge--completed',
+                'completed_late': 'status-badge--completed_late',
+                'missed': 'status-badge--missed',
+                'pending': 'status-badge--pending'
+            };
+            return classes[status] || 'status-badge--pending';
+        };
+
+        const itemsHtml = worksheetsData.slice(0, 5).map(item => {
+            // Determine period title: check for period object, or title, or fallback
+            let periodText = 'Masih Aktif';
+            if (item.period && item.period.title) {
+                periodText = item.period.title;
+            } else if (item.week) {
+                periodText = `Minggu ke-${item.week}`;
+            } else if (item.start_date) {
+                // Fallback to start date if no title
+                periodText = new Date(item.start_date).toLocaleDateString('id-ID', { month: 'short', day: 'numeric' });
+            }
+
+            return `
+            <div class="list-item" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee;">
                 <div>
-                    <span style="font-weight: 500;">${item.title || 'Worksheet'}</span>
-                    <p style="margin: 2px 0 0; font-size: 0.8rem; color: #666;">Minggu ke-${item.week || '-'}</p>
+                    <h4 style="margin: 0; font-size: 1rem; color: #333;">${item.title || 'Individual Worksheet'}</h4>
+                    <p style="margin: 4px 0 0; font-size: 0.85rem; color: #666;">${periodText}</p>
                 </div>
-                <span class="status-badge status-badge--${item.status || 'pending'}" style="font-size: 0.75rem;">
-                    ${(item.status || 'pending').toUpperCase()}
+                <span class="status-badge ${getStatusClass(item.status || 'pending')}">
+                    ${getStatusLabel(item.status || 'pending')}
                 </span>
             </div>
-        `).join('');
+        `}).join('');
 
         return `
             <div class="content-list">

@@ -15,7 +15,7 @@ async function handleResponse(response) {
   try {
     const text = await response.text();
     console.log("[handleResponse] Raw response text:", text.substring(0, 500)); // Log first 500 chars
-    
+
     if (text) {
       payload = JSON.parse(text);
     } else {
@@ -105,6 +105,15 @@ export async function submitFeedback(payload) {
 // Get Feedback Status (Student)
 export async function getFeedbackStatus() {
   const response = await fetch(`${API_BASE_URL}/group/feedback/status`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(response);
+}
+
+// Get Worksheet Periods (Student/Public)
+export async function getWorksheetPeriods() {
+  const response = await fetch(`${API_BASE_URL}/periods`, {
     method: "GET",
     headers: getAuthHeaders(),
   });

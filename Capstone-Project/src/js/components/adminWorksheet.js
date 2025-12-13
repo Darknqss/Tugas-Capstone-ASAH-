@@ -1,4 +1,4 @@
-import { listAllWorksheets, validateWorksheet } from "../services/adminService.js";
+import { listAllWorksheets, validateWorksheet, listPeriods } from "../services/adminService.js";
 
 export async function AdminWorksheetPage() {
   let worksheets = [];
@@ -32,13 +32,16 @@ export async function AdminWorksheetPage() {
                 <select class="filter-select-clean" id="worksheet-status-filter" data-worksheet-filter style="min-width: 200px;">
                   <option value="" ${!currentFilter ? 'selected' : ''}>Semua Status</option>
                   <option value="submitted" ${currentFilter === 'submitted' ? 'selected' : ''}>⏳ Menunggu Review</option>
-                  <option value="approved" ${currentFilter === 'approved' ? 'selected' : ''}>✅ Disetujui</option>
-                  <option value="rejected" ${currentFilter === 'rejected' ? 'selected' : ''}>❌ Ditolak</option>
-                  <option value="late" ${currentFilter === 'late' ? 'selected' : ''}>⏰ Terlambat</option>
+                  <option value="completed" ${currentFilter === 'completed' ? 'selected' : ''}>✅ Selesai</option>
+                  <option value="completed_late" ${currentFilter === 'completed_late' ? 'selected' : ''}>⚠️ Selesai Terlambat</option>
+                  <option value="missed" ${currentFilter === 'missed' ? 'selected' : ''}>❌ Tidak Selesai</option>
                 </select>
               </div>
            </div>
            <div class="toolbar-right">
+             <button class="btn btn-outline btn-sm" data-open-modal="manage-periods" style="margin-right: 8px;">
+               📅 Lihat & Kelola Periode
+             </button>
              <button class="btn btn-outline btn-sm" data-manual-validate-all style="margin-right: 8px;">
                ⚡ Validasi Manual Semua
              </button>
@@ -88,14 +91,14 @@ export async function AdminWorksheetPage() {
               </div>
               ${localStorage.getItem('worksheet-deadline') ? `
                 <div class="alert alert-info" style="margin-top: 12px; padding: 12px; background: #e7f3ff; border-radius: 6px;">
-                  <strong>Deadline Aktif:</strong> ${new Date(localStorage.getItem('worksheet-deadline')).toLocaleString('id-ID', { 
-                    day: 'numeric', 
-                    month: 'long', 
-                    year: 'numeric', 
-                    hour: '2-digit', 
-                    minute: '2-digit',
-                    timeZone: 'Asia/Jakarta'
-                  })} WIB
+                  <strong>Deadline Aktif:</strong> ${new Date(localStorage.getItem('worksheet-deadline')).toLocaleString('id-ID', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'Asia/Jakarta'
+  })} WIB
                 </div>
               ` : ''}
             </form>
@@ -148,7 +151,7 @@ export async function AdminWorksheetPage() {
                             ${ws.activity_description || 'N/A'}
                         </div>
                       </td>
-                      <td><span class="status-indicator status-${(ws.status || 'submitted').toLowerCase()}">${getStatusLabel(ws.status)}</span></td>
+                      <td><span class="status-badge status-badge--${(ws.status || 'submitted').toLowerCase()}">${getStatusLabel(ws.status)}</span></td>
                       <td>
                         ${ws.status === 'submitted' ? `
                           <button class="btn-primary-sm" data-validate-worksheet="${ws.id}">Review</button>
@@ -176,9 +179,9 @@ export async function AdminWorksheetPage() {
           <div class="form-group">
             <label>Ubah Status</label>
             <select name="status" required>
-              <option value="approved">Disetujui</option>
-              <option value="rejected">Ditolak</option>
-              <option value="late">Terlambat</option>
+              <option value="completed">Selesai</option>
+              <option value="completed_late">Selesai Terlambat</option>
+              <option value="missed">Tidak Selesai</option>
             </select>
           </div>
           <div class="form-group">
@@ -192,6 +195,50 @@ export async function AdminWorksheetPage() {
         </form>
       </div>
 
+      <!-- Create Period Modal -->
+      <div class="modal" data-modal="manage-periods" hidden>
+        <div class="modal-header">
+          <h3>Buat Periode Worksheet</h3>
+          <button class="modal-close" data-close-modal>×</button>
+        </div>
+        <form class="modal-form" data-form="create-period">
+          <div class="form-group">
+            <label>Judul Periode</label>
+            <input type="text" name="title" required placeholder="Contoh: Worksheet Minggu 1" />
+          </div>
+          <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div>
+              <label>Tanggal Mulai</label>
+              <input type="date" name="start_date" required />
+            </div>
+            <div>
+              <label>Tanggal Selesai</label>
+              <input type="date" name="end_date" required />
+            </div>
+          </div>
+          <div class="form-group">
+             <label>Batch ID</label>
+             <input type="text" name="batch_id" required placeholder="asah-batch-1" value="asah-batch-1" />
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn btn-outline" data-close-modal>Batal</button>
+            <button type="submit" class="btn btn-primary">Buat Periode</button>
+          </div>
+        </form>
+        
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+                <h4 style="margin: 0; font-size: 16px; font-weight: 700; color: #333; display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 18px;">📋</span> Daftar Periode Aktif
+                </h4>
+                <span style="font-size: 12px; color: #666; background: #f5f5f5; padding: 4px 10px; border-radius: 12px;">Auto-refresh</span>
+            </div>
+            <div id="periods-list-container" style="max-height: 300px; overflow-y: auto; background: #fafafa; border-radius: 8px; padding: 4px;">
+                <p class="text-muted text-center" style="padding: 20px;">Memuat periode...</p>
+            </div>
+        </div>
+      </div>
+
       </div>
     </div>
   `;
@@ -203,12 +250,109 @@ function formatDate(dateStr) {
   return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
+
 function getStatusLabel(status) {
   const labels = {
     'submitted': 'Menunggu Review',
-    'approved': 'Disetujui',
-    'rejected': 'Ditolak',
-    'late': 'Terlambat'
+    'completed': 'Selesai',
+    'completed_late': 'Selesai Terlambat',
+    'missed': 'Tidak Selesai',
+    'approved': 'Disetujui', // Legacy support
+    'rejected': 'Ditolak', // Legacy support
+    'late': 'Terlambat' // Legacy support
   };
   return labels[status] || status || 'Unknown';
 }
+
+// Function to attach to window or export to be called when modal opens
+// Since we don't have a central event bus easily accessible, we'll attach a listener to the button
+// But simpler: we just modify app.js to call this refresh or we use a mutation observer? 
+// Actually, let's just expose a function and call it from app.js when opening modal?
+// Or better, let's auto-load it when the page renders? No, inefficient.
+// Let's add a global event listener for the button here.
+
+document.addEventListener('click', async (e) => {
+  if (e.target.closest('[data-open-modal="manage-periods"]')) {
+    const container = document.getElementById('periods-list-container');
+    if (!container) return;
+
+    try {
+      container.innerHTML = '<p class="text-muted text-center">Memuat periode...</p>';
+      const response = await listPeriods();
+      const periods = response.data || [];
+
+      if (periods.length === 0) {
+        container.innerHTML = '<p class="text-muted text-center">Belum ada periode dibuat.</p>';
+        return;
+      }
+
+      container.innerHTML = `
+        <div style="border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-top: 10px;">
+          <table class="modern-table" style="width: 100%; border-collapse: collapse; font-size: 13px;">
+            <thead style="background-color: #f8f9fa; border-bottom: 2px solid #eee;">
+              <tr>
+                <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: #444; text-transform: uppercase; letter-spacing: 0.5px;">Judul Periode</th>
+                <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: #444; text-transform: uppercase; letter-spacing: 0.5px;">Rentang Tanggal</th>
+                <th style="padding: 12px 16px; text-align: right; font-weight: 600; color: #444; text-transform: uppercase; letter-spacing: 0.5px;">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${periods.map((p, index) => {
+        const isFinished = new Date(p.end_date) < new Date();
+        return `
+                <tr style="border-bottom: 1px solid #eee; background-color: ${index % 2 === 0 ? '#fff' : '#fafafa'}; transition: background 0.2s;">
+                  <td style="padding: 14px 16px; color: #333; font-weight: 500;">${p.title}</td>
+                  <td style="padding: 14px 16px; color: #666;">
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                      <span>📅</span>
+                      <span>${formatDate(p.start_date)} - ${formatDate(p.end_date)}</span>
+                    </div>
+                  </td>
+                  <td style="padding: 14px 16px; text-align: right;">
+                    ${isFinished
+            ? '<span style="font-size: 11px; padding: 4px 12px; border-radius: 20px; background: #eee; color: #777; font-weight: 600;">Selesai</span>'
+            : `<div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px;">
+                 <span style="font-size: 11px; padding: 4px 12px; border-radius: 20px; background: #e8f5e9; color: #2e7d32; font-weight: 600;">Aktif</span>
+                 <button class="btn-xs btn-outline" data-remind-period="${p.id}" title="Kirim Email Pengingat" style="border-radius: 50%; width: 28px; height: 28px; padding: 0; display: flex; align-items: center; justify-content: center; border-color: #f59e0b; color: #f59e0b;">
+                   🔔
+                 </button>
+               </div>`
+          }
+                  </td>
+                </tr>
+                `;
+      }).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    } catch (error) {
+      console.error("Failed to load periods:", error);
+      container.innerHTML = '<p class="text-danger text-center">Gagal memuat periode.</p>';
+    }
+  }
+
+  // Handle Remind Button Click
+  if (e.target.closest('[data-remind-period]')) {
+    const btn = e.target.closest('[data-remind-period]');
+    const periodId = btn.dataset.remindPeriod;
+
+    if (!confirm('Kirim email pengingat kepada mahasiswa yang belum mengumpulkan tugas pada periode ini?')) return;
+
+    try {
+      btn.disabled = true;
+      btn.innerHTML = '...';
+      const { remindPeriodStudents } = await import('../services/adminService.js');
+      const response = await remindPeriodStudents(periodId);
+      alert(`Pengingat berhasil dikirim! ${response.data.reminded_count} mahasiswa diingatkan.`);
+    } catch (error) {
+      console.error('Failed to send reminder:', error);
+      alert(error.message || 'Gagal mengirim pengingat.');
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '🔔';
+      }
+    }
+  }
+});
