@@ -1,1 +1,11 @@
 # Tugas-Capstone-ASAH-
+-memperbaiki ui profile admin
+-menambahkan fitur post timeline di dashboard admin
+-ngehit endpoint get untuk melihat anggota tim yang berbentuk detail tim dengan jumlah anggota tim terlihat, dan berhasil membuat pilihan dropdown untuk alasan tim accepted,pending. rejected yang akan langsung dikirim ke email 
+-berhasi ngehit endpoint pengiriman email secara otomatis
+-membuat grup yang menjadi pengirim deliverables  menjadi terlihat di dashboard admin dengan ngehit backend
+-membuat fitur randomize team berhasil dengan mengambil data dari unassigned students yang bisa dilihat di dashboard admin
+-membuat UI admin lebih bagus untuk dipandang 
+-mengimply landing page dan dashboard admin agar flex resolution (flexbox)
+-melengkapi semua fitur individual worksheet
+-menambahkan edit dan delete timeline di admin yang langsung terintegrasi dengan pendaftaran capstone
