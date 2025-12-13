@@ -86,7 +86,7 @@ export async function AdminFeedbackPage() {
         <!-- Header Section -->
         <div class="section-header mb-4">
           <h2 class="section-title fw-bold text-dark">360 Feedback - Admin</h2>
-          <p class="section-description text-muted">Monitor dan export data feedback 360 derajat per tim</p>
+          <p class="section-description text-muted">Monitor dan ekspor data feedback 360 derajat per tim</p>
         </div>
 
         <!-- Toolbar -->
@@ -98,7 +98,7 @@ export async function AdminFeedbackPage() {
            <div class="toolbar-right">
               <!-- SINGLE EXPORT BUTTON -->
               <button class="btn-primary-icon" id="export-feedback-btn" data-export-feedback>
-                <i class="bi bi-file-earmark-excel"></i> Export Data (Excel)
+                <i class="bi bi-file-earmark-excel"></i><span>📥</span> Ekspor Data
               </button>
            </div>
         </div>
