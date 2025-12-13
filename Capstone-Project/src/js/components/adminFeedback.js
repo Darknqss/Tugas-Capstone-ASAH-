@@ -58,6 +58,19 @@ export async function AdminFeedbackPage() {
 
     _cachedGroupsData = groups;
 
+    // DEBUG: Log data for troubleshooting progress bar
+    console.log('[AdminFeedback] Total groups:', groups.length);
+    console.log('[AdminFeedback] Total feedback entries:', feedbackData.length);
+    if (feedbackData.length > 0) {
+      console.log('[AdminFeedback] Sample feedback entry:', feedbackData[0]);
+    }
+    groups.forEach(g => {
+      console.log(`[AdminFeedback] Group "${g.group_name}": ${g.members?.length || 0} members`);
+      if (g.members?.length > 0) {
+        console.log('[AdminFeedback] Sample member:', g.members[0]);
+      }
+    });
+
   } catch (error) {
     console.error("Error fetching feedback data:", error);
     hasError = true;
@@ -116,58 +129,72 @@ export async function AdminFeedbackPage() {
                 <tbody>
                   ${groups.map((group) => {
     const members = group.members || [];
-    const memberNames = members.map(m => m.name || m.full_name || m.email || "Unknown");
-    const memberIds = members.map(m => m.source_id || m.id || m.users_source_id).filter(Boolean);
+    const groupName = group.group_name || group.name || '';
+    const groupId = group.group_id || group.id;
+    const totalMembers = members.length;
 
-    // Count members who have given feedback (not just total feedback entries)
+    // Build a list of all member identifiers for this group
+    const memberIdentifiers = members.map(m => ({
+      name: m.name || m.full_name || m.email || '',
+      id: String(m.source_id || m.id || m.users_source_id || '')
+    }));
+
+    // Count members who have given feedback by checking all feedback data
     let membersWhoGaveFeedback = 0;
-    members.forEach(member => {
-      const memberName = member.name || member.full_name || member.email;
-      const memberId = member.source_id || member.id || member.users_source_id;
-
-      // Check if this member has given any feedback
+    memberIdentifiers.forEach(member => {
       const hasFeedback = feedbackData.some(f => {
-        // Match by ID first
-        if (memberId && f.reviewer?.users_source_id) {
-          return f.reviewer.users_source_id === memberId;
-        }
-        if (memberId && f.reviewer?.id) {
-          return f.reviewer.id === memberId;
+        // Get reviewer info from feedback
+        const reviewerName = f.reviewer?.name || f.reviewer_name || '';
+        const reviewerId = String(f.reviewer?.users_source_id || f.reviewer?.id || f.reviewer_id || '');
+
+        // Match by ID if available
+        if (member.id && reviewerId && member.id === reviewerId) {
+          return true;
         }
         // Match by name
-        const revName = f.reviewer?.name || f.reviewer_name;
-        return revName === memberName;
+        if (member.name && reviewerName && member.name === reviewerName) {
+          return true;
+        }
+        return false;
       });
-
       if (hasFeedback) membersWhoGaveFeedback++;
     });
 
-    const totalMembers = members.length;
     const percent = totalMembers > 0 ? Math.round((membersWhoGaveFeedback / totalMembers) * 100) : 0;
 
+    // Status indicator color based on progress
+    const statusClass = percent === 100 ? 'status-accepted' : percent > 0 ? 'status-pending_validation' : 'status-draft';
+    const statusText = percent === 100 ? '✅ Selesai' : percent > 0 ? '⏳ Dalam Progress' : '📝 Belum Dimulai';
+
     return `
-                    <tr>
+                    <tr data-group-id="${groupId}" style="cursor: pointer;">
                       <td>
-                        <div class="fw-bold text-dark">${group.group_name || 'Tim Tanpa Nama'}</div>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                          <div class="team-avatar">${(groupName || "?").charAt(0).toUpperCase()}</div>
+                          <div class="fw-bold text-dark" style="font-size: 15px;">${groupName || 'Tim Tanpa Nama'}</div>
+                        </div>
                       </td>
                       <td>
-                        <span class="badge bg-secondary-subtle text-secondary rounded-pill">
-                           ${totalMembers} Anggota
-                        </span>
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                          <span style="font-size: 18px;">👤</span>
+                          <span style="font-weight: 600; color: var(--text-dark);">${totalMembers}</span>
+                          <span style="font-size: 13px; color: #6c757d;">anggota</span>
+                        </div>
                       </td>
                       <td>
-                         <div class="d-flex align-items-center">
-                             <div class="progress me-2" style="width: 80px; height: 6px; border-radius: 3px; background-color: #f0f0f0;">
-                                <div class="progress-bar ${percent === 100 ? 'bg-success' : 'bg-primary'}" role="progressbar" style="width: ${percent}%; border-radius: 3px;" aria-valuenow="${percent}" aria-valuemin="0" aria-valuemax="100"></div>
-                             </div>
-                             <span class="text-xs fw-medium ${percent === 100 ? 'text-success' : 'text-muted'}">
-                                ${membersWhoGaveFeedback}/${totalMembers} (${percent}%)
-                             </span>
-                         </div>
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                          <div style="display: flex; align-items: center; gap: 8px;">
+                            <div style="width: 100px; height: 8px; background: #e9ecef; border-radius: 4px; overflow: hidden;">
+                              <div style="width: ${percent}%; height: 100%; background: ${percent === 100 ? '#28a745' : '#4f46e5'}; border-radius: 4px; transition: width 0.3s;"></div>
+                            </div>
+                            <span style="font-size: 13px; font-weight: 600; color: ${percent === 100 ? '#28a745' : '#666'};">${membersWhoGaveFeedback}/${totalMembers}</span>
+                          </div>
+                          <span class="status-indicator ${statusClass}" style="font-size: 11px;">${statusText}</span>
+                        </div>
                       </td>
                       <td>
-                        <button class="btn btn-sm btn-outline-primary" onclick="window.showFeedbackDetail('${group.id || group.group_id}')">
-                           Detail
+                        <button class="btn-primary-sm" onclick="window.showFeedbackDetail('${groupId}')">
+                           Lihat Detail
                         </button>
                       </td>
                     </tr>

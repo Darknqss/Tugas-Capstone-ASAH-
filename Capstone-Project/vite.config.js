@@ -7,7 +7,7 @@ export default defineConfig(({ mode }) => {
   // Get BASE_URL from .env, default to production if not set
   // Format di .env: BASE_URL=https://capsdc-09.vercel.app/
   // (tanpa /api di akhir, akan ditambahkan otomatis di api.js)
-  const baseUrl = env.BASE_URL || 'https://capsdc-09.vercel.app/';
+  const baseUrl = env.BASE_URL;
 
   return {
     define: {
