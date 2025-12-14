@@ -1,31 +1,116 @@
-Pada tahap ini, saya bertanggung jawab dalam pengembangan dan penyempurnaan Admin Dashboard pada project Capstone ASAH. Adapun fitur dan peningkatan yang telah berhasil diimplementasikan antara lain:
+# 🚀 Capstone Team Management Dashboard
 
-✨ UI & UX Improvements
+## 📌 Deskripsi
 
-Memperbaiki dan menyempurnakan UI Profile Admin agar lebih rapi dan informatif
+**Capstone Team Management Dashboard** adalah aplikasi web yang dirancang untuk membantu admin dalam mengelola seluruh proses capstone secara terpusat dan efisien. Mulai dari pengelolaan timeline, manajemen tim, pengiriman email otomatis, hingga pembagian tim secara acak (*randomize team*).
 
-Meningkatkan tampilan Dashboard Admin agar lebih nyaman dan mudah digunakan
+Aplikasi ini dibuat dengan tampilan yang **responsif**, **ringan**, dan **mudah digunakan**, sehingga mempermudah admin dalam memantau dan mengelola aktivitas capstone.
 
-Mengimplementasikan Flexbox pada Landing Page dan Dashboard Admin agar responsif di berbagai resolusi layar
+---
 
-🧩 Dashboard & Timeline Features
+## 🛠️ Tech Stack
 
-Menambahkan fitur Post Timeline pada Dashboard Admin
+* **Frontend**: Vanilla JS + Vite
+* **Backend**: Node.js / Express.js
+* **Database**: Supabase Client
+* **Styling**: CSS
+* **Email Service**: Gmail (SMTP)
 
-Mengimplementasikan fitur Edit & Delete Timeline yang terintegrasi langsung dengan proses pendaftaran Capstone
+---
 
-👥 Team Management
+## 📋 Prerequisites
 
-Mengimplementasikan endpoint GET Detail Tim, menampilkan informasi tim beserta jumlah anggota
+Pastikan sudah terinstall di perangkat Anda:
 
-Menambahkan Dropdown Status Tim (Accepted, Pending, Rejected) yang terintegrasi dengan sistem pengiriman email otomatis
+* **Node.js** (minimal versi 18)
+* **npm** atau **yarn**
+* **Git**
 
-Berhasil mengimplementasikan pengiriman email otomatis berdasarkan status tim
+---
 
-Menampilkan grup pengirim Deliverables pada Dashboard Admin dengan integrasi backend
+## 🚀 Installation & Setup
 
-Mengembangkan fitur Randomize Team dengan mengambil data dari Unassigned Students, yang dapat dipantau langsung melalui Dashboard Admin
+Ikuti langkah-langkah berikut untuk menjalankan project secara lokal:
 
-📝 Worksheet Management
+### 1️⃣ Clone Repository
 
-Melengkapi dan mengintegrasikan seluruh fitur Individual Worksheet sesuai kebutuhan sistem
+```bash
+git clone https://github.com/Darknqss/Tugas-Capstone-ASAH-.git
+cd Tugas-Capstone-ASAH-
+```
+
+### 2️⃣ Install Dependencies
+
+```bash
+npm install
+```
+
+### 3️⃣ Konfigurasi Environment
+
+Buat file **`.env`** di root project dan isi dengan konfigurasi berikut:
+
+```env
+VITE_API_BASE_URL=http://localhost:5000
+EMAIL_SERVICE=gmail
+EMAIL_USER=capstonetrack09@gmail.com
+EMAIL_PASS=bzvdehotggypdtia
+```
+
+> ⚠️ **Catatan:** Pastikan email dan app password Gmail sudah dikonfigurasi dengan benar.
+
+### 4️⃣ Menjalankan Aplikasi
+
+```bash
+npm run dev
+```
+
+Aplikasi akan berjalan di:
+👉 **[http://localhost:5173](http://localhost:5173)**
+
+---
+
+## ✨ Features
+
+* 🎨 Perbaikan dan peningkatan **UI Profile Admin**
+* 📝 **Post Timeline** pada Dashboard Admin
+* 👥 Melihat **detail tim** beserta jumlah anggota
+* 🔽 Dropdown status tim (**Accepted, Pending, Rejected**)
+* 📧 **Pengiriman email otomatis** berdasarkan status tim
+* 📦 Menampilkan grup pengirim **deliverables** di dashboard admin
+* 🔀 **Randomize team** dari data *unassigned students*
+* ⏱️ **CRUD Timeline** terintegrasi dengan pendaftaran capstone
+* 📱 Dashboard admin **responsif** menggunakan Flexbox
+* 🧩 Penyempurnaan seluruh fitur **Individual Worksheet**
+
+---
+
+## 🧭 Cara Penggunaan
+
+1. Admin login ke **Dashboard Admin**
+2. Admin mengelola **timeline capstone** (tambah, edit, hapus)
+3. Admin melihat dan mengatur **status tim**
+4. Sistem secara otomatis mengirim **email notifikasi** sesuai status tim
+5. Admin dapat melakukan **randomize team** jika diperlukan
+
+---
+
+## 📝 Catatan
+
+* Pastikan **backend sudah berjalan** sebelum menjalankan frontend
+* Seluruh fitur membutuhkan koneksi backend agar dapat berfungsi dengan normal
+
+---
+
+## 👨‍💻 Author
+
+**Team Capstone Project**
+
+* I Made Gede Riyandhi Wiguna Putra — `F014D5Y0797`
+* Adinda Chandra Dimitri — `F014D5X0047`
+* Putu Aulia Devina Armana — `F014D5X1581`
+* I Gusti Komang Damar Ari Suputra — `F014D5Y0783`
+* Ida Bagus Agung Wiswa Pramana — `F014D5Y0822`
+
+---
+
+⭐ Jika project ini membantu, jangan lupa beri **star** di repository GitHub!
