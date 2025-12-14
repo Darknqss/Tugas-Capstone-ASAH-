@@ -1,0 +1,20 @@
+const { createClient } = require("@supabase/supabase-js");
+
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+  throw new Error(
+    "Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variables"
+  );
+}
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+  auth: { autoRefreshToken: false, persistSession: false },
+});
+
+module.exports = { supabase };
+
+// FIXME : PENGIRIMAN EMAIL OTOMATIS KE LEADER DAN MEMBER SETELAH TIM BERHASIL ATAU DI VAKIDASI OLEH ADMIN.
+//        BUAT SERVICE BARU DI FOLDER SERVICES UNTUK MENGHANDLE PENGIRIMAN EMAIL ITU, GUNAKAN NODEMAILER ATAU LIBRARY LAIN YANG SESUAI.
+//        PANGGIL SERVICE ITU DI CONTROLLER REGISTERTEAM SETELAH TIM BERHASIL DIDAFTARKAN.
