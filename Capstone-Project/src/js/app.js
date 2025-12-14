@@ -223,7 +223,7 @@ class App {
                 }
                 if (form.matches('[data-form="edit-member"]')) {
                     event.preventDefault();
-                    this.handleUpdateUserLearningPath(form);
+                    this.handleEditMemberSubmit(form);
                     return;
                 }
                 if (form.matches('[data-edit-group-form]')) {
@@ -233,7 +233,7 @@ class App {
                 }
                 if (form.matches('[data-edit-member-form]')) {
                     event.preventDefault();
-                    this.handleUpdateUserLearningPath(form);
+                    this.handleEditMemberSubmit(form);
                     return;
                 }
 
@@ -340,6 +340,13 @@ class App {
             }
         });
 
+        document.addEventListener("change", (event) => {
+            if (event.target.matches("[data-change-status-member]")) {
+                event.preventDefault();
+                this.handleMemberStatusChange(event.target);
+            }
+        });
+
         document.addEventListener("click", async (event) => {
             if (event.target.closest("[data-logout-button]")) {
                 event.preventDefault();
@@ -404,6 +411,16 @@ class App {
                 } else {
                     console.error("[App] No groupId found in button");
                     this.showToast("ID tim tidak ditemukan");
+                }
+            }
+
+            const openAddMemberBtn = event.target.closest("[data-open-add-member]");
+            if (openAddMemberBtn) {
+                event.preventDefault();
+                event.stopPropagation();
+                const groupId = openAddMemberBtn.dataset.openAddMember;
+                if (groupId) {
+                    this.openAddMemberModal(groupId);
                 }
             }
 
@@ -508,7 +525,9 @@ class App {
                 event.preventDefault();
                 const memberId = editMemberBtn.dataset.editMember;
                 const groupId = editMemberBtn.dataset.groupId;
-                this.openEditMemberModal(groupId, memberId);
+                const learningPath = editMemberBtn.dataset.learningPath;
+                const status = editMemberBtn.dataset.status;
+                this.openEditMemberModal(groupId, memberId, learningPath, status);
             }
 
             // Randomize Modal Handlers
@@ -557,24 +576,7 @@ class App {
                     console.warn(`Modal ${modalName} not found`);
                 }
             }
-            // Add Member Modal Handlers
-            const openAddMemberBtn = event.target.closest("[data-open-add-member]");
-            if (openAddMemberBtn) {
-                event.preventDefault();
-                const groupId = openAddMemberBtn.dataset.openAddMember;
-                const modal = document.getElementById("add-member-modal");
 
-                // Ensure the hidden input has the correct group ID
-                if (modal) {
-                    const form = modal.querySelector('form');
-                    if (form) {
-                        const groupInput = form.querySelector('[name="group_id"]');
-                        if (groupInput) groupInput.value = groupId;
-                    }
-                    modal.hidden = false;
-                    modal.style.display = "flex";
-                }
-            }
 
             if (event.target.matches("[data-close-add-member-modal]") || event.target.closest("[data-close-add-member-modal]")) {
                 event.preventDefault();
@@ -585,14 +587,7 @@ class App {
                 }
             }
 
-            // Remove Member Handler
-            const removeMemberBtn = event.target.closest("[data-remove-member]");
-            if (removeMemberBtn) {
-                event.preventDefault();
-                const userId = removeMemberBtn.dataset.removeMember;
-                const groupId = removeMemberBtn.dataset.groupId;
-                this.handleRemoveMember(groupId, userId);
-            }
+
 
             // Edit Timeline Handler
             const editTimelineBtn = event.target.closest("[data-edit-timeline]");
@@ -659,14 +654,7 @@ class App {
                 });
             }
 
-            // Edit Member Handler
-            const openEditMemberBtn = event.target.closest("[data-edit-member]");
-            if (openEditMemberBtn) {
-                event.preventDefault();
-                const memberId = openEditMemberBtn.dataset.editMember;
-                const groupId = openEditMemberBtn.dataset.groupId;
-                this.openEditMemberModal(groupId, memberId);
-            }
+
 
             if (event.target.matches("[data-close-edit-member-modal]") || event.target.closest("[data-close-edit-member-modal]")) {
                 event.preventDefault();
@@ -1047,13 +1035,13 @@ class App {
 
         const newRule = document.createElement("div");
         newRule.className = "rule-item";
-        newRule.style.cssText = "padding: 16px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef; position: relative;";
+        newRule.style.cssText = "padding: 16px; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; position: relative; box-shadow: 0 1px 2px rgba(0,0,0,0.05);";
         newRule.innerHTML = `
-      <button type="button" class="btn-icon-tiny" onclick="this.closest('.rule-item').remove()" style="position: absolute; top: 8px; right: 8px; background: #fee; color: #c33; border: none; cursor: pointer; width: 24px; height: 24px; border-radius: 4px; font-size: 16px; display: flex; align-items: center; justify-content: center;">×</button>
-      <div style="display: grid; gap: 12px;">
+      <button type="button" class="btn-icon-tiny" onclick="this.closest('.rule-item').remove()" style="position: absolute; top: 12px; right: 12px; background: #fee2e2; color: #ef4444; border: none; cursor: pointer; width: 24px; height: 24px; border-radius: 4px; font-size: 16px; display: flex; align-items: center; justify-content: center; transition: background 0.2s;">×</button>
+      <div style="display: flex; flex-direction: column; gap: 12px;">
         <div class="form-row">
-          <label style="font-weight: 600; font-size: 13px; display: block; margin-bottom: 4px;">Learning Path</label>
-          <select name="attribute_value" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
+          <label style="font-weight: 600; font-size: 13px; display: block; margin-bottom: 6px; color: #374151;">Learning Path</label>
+          <select name="attribute_value" required style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; background: #f9fafb; font-size: 14px; color: #1f2937;">
             <option value="">Pilih Learning Path</option>
             <option value="Machine Learning">Machine Learning</option>
             <option value="Front-End & Back-End">Front-End & Back-End</option>
@@ -1063,16 +1051,16 @@ class App {
           </select>
         </div>
         <div class="form-row">
-          <label style="font-weight: 600; font-size: 13px; display: block; margin-bottom: 4px;">Operator</label>
-          <select name="operator" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
+          <label style="font-weight: 600; font-size: 13px; display: block; margin-bottom: 6px; color: #374151;">Operator</label>
+          <select name="operator" required style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; background: #f9fafb; font-size: 14px; color: #1f2937;">
             <option value=">=">Minimal (>=)</option>
             <option value="<=">Maksimal (<=)</option>
             <option value="==">Sama dengan (==)</option>
           </select>
         </div>
         <div class="form-row">
-          <label style="font-weight: 600; font-size: 13px; display: block; margin-bottom: 4px;">Jumlah Anggota</label>
-          <input type="number" name="value" min="1" max="10" placeholder="Contoh: 2" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px;" />
+          <label style="font-weight: 600; font-size: 13px; display: block; margin-bottom: 6px; color: #374151;">Jumlah Anggota</label>
+          <input type="number" name="value" min="1" max="10" placeholder="Contoh: 2" required style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; background: #f9fafb; font-size: 14px; color: #1f2937;" />
         </div>
         <input type="hidden" name="user_attribute" value="learning_path" />
       </div>
@@ -1080,14 +1068,30 @@ class App {
         rulesList.appendChild(newRule);
     }
 
-    openEditMemberModal(userId) {
+    openEditMemberModal(groupId, userId, learningPath, status) {
         const modal = document.querySelector("[data-modal='edit-member']");
         if (!modal) return;
         const form = modal.querySelector("form");
         if (form) {
-            form.querySelector("[name='user_id']").value = userId;
+            if (form.querySelector("[name='user_id']")) form.querySelector("[name='user_id']").value = userId || "";
+            if (form.querySelector("[name='group_id']")) form.querySelector("[name='group_id']").value = groupId || "";
+            if (form.querySelector("[name='learning_path']")) form.querySelector("[name='learning_path']").value = learningPath || "";
+            if (form.querySelector("[name='status']")) form.querySelector("[name='status']").value = status || "active";
         }
         modal.hidden = false;
+        modal.style.display = "flex";
+    }
+
+    openAddMemberModal(groupId) {
+        const modal = document.getElementById("add-member-modal");
+        if (!modal) return;
+        const form = modal.querySelector("form");
+        if (form) {
+            const groupInput = form.querySelector("[name='group_id']");
+            if (groupInput) groupInput.value = groupId;
+        }
+        modal.hidden = false;
+        modal.style.display = "flex";
     }
 
     async viewGroupDetail(groupId) {
@@ -1994,38 +1998,46 @@ class App {
         }
     }
 
-    // Handler for opening Edit Member Modal
-    openEditMemberModal(userId) {
-        const modal = document.querySelector('[data-modal="edit-member"]');
-        const backdrop = document.querySelector("[data-modal-backdrop]");
-        const userIdInput = modal?.querySelector("[data-user-id-input]");
 
-        if (modal && backdrop && userIdInput) {
-            userIdInput.value = userId;
-            modal.hidden = false;
-            backdrop.hidden = false;
-        }
-    }
 
-    async handleUpdateUserLearningPath(form) {
+    async handleEditMemberSubmit(form) {
         this.resetFormState(form);
         const formData = new FormData(form);
         const userId = formData.get("user_id");
+        const groupId = formData.get("group_id");
         const learningPath = formData.get("learning_path");
+        const status = formData.get("status");
 
-        if (!userId || !learningPath) {
-            this.showFormFeedback(form, "Pilih Learning Path baru", true);
+        if (!userId) {
+            this.showFormFeedback(form, "User ID tidak valid", true);
             return;
         }
 
-        const payload = { learning_path: learningPath };
-
         try {
             this.toggleSubmitLoading(form, true);
-            const { updateUserLearningPath } = await import("./services/adminService.js");
-            await updateUserLearningPath(userId, payload);
-            this.showToast("Learning Path berhasil diperbarui ✅");
-            this.closeModal();
+            const { updateUserLearningPath, updateMemberStatus } = await import("./services/adminService.js");
+
+            const promises = [];
+
+            if (learningPath) {
+                promises.push(updateUserLearningPath(userId, { learning_path: learningPath }));
+            }
+
+            if (status && groupId) {
+                promises.push(updateMemberStatus(groupId, userId, { status: status }));
+            }
+
+            await Promise.all(promises);
+
+            this.showToast("Data anggota berhasil diperbarui ✅");
+
+            // Hide modal
+            const modal = document.querySelector("[data-modal='edit-member']");
+            if (modal) {
+                modal.hidden = true;
+                modal.style.display = "none";
+            }
+
             form.reset();
             this.router.loadRoute(); // Refresh to show changes
         } catch (error) {
@@ -2961,23 +2973,32 @@ class App {
         }
     }
 
-    async handleRemoveMember(groupId, userId) {
-        if (!confirm("Apakah Anda yakin ingin menghapus anggota ini dari tim?")) {
-            return;
-        }
+
+
+    async handleMemberStatusChange(selectElement) {
+        const userId = selectElement.dataset.changeStatusMember;
+        const groupId = selectElement.dataset.groupId;
+        const newStatus = selectElement.value;
+
+        if (!userId || !groupId) return;
 
         try {
-            this.showToast("Menghapus anggota...", false);
-            const { removeMemberFromGroup } = await import("./services/adminService.js");
-            await removeMemberFromGroup(groupId, userId);
+            // Optimistic UI update is handled by the select's onchange
+            const { updateMemberStatus } = await import("./services/adminService.js");
+            await updateMemberStatus(groupId, userId, { status: newStatus });
+            this.showToast(`Status anggota diperbarui menjadi: ${newStatus} ✅`);
 
-            this.showToast("Anggota berhasil dihapus dari tim 🗑️");
-
-            // Reload page
+            // Reload to ensure consistency (and update other UI elements like badges)
+            // Or just rely on the select state if we want to be faster. 
+            // But reloading ensures the "INACTIVE" badge near name works too.
             this.router.loadRoute();
         } catch (error) {
-            console.error("Error removing member:", error);
-            this.showToast(error.message || "Gagal menghapus anggota", true);
+            console.error("Error updating member status:", error);
+            this.showToast("Gagal memperbarui status", true);
+            // Revert select value on error
+            selectElement.value = newStatus === 'active' ? 'inactive' : 'active';
+            // Trigger onchange manually to revert styles
+            selectElement.dispatchEvent(new Event('change'));
         }
     }
 

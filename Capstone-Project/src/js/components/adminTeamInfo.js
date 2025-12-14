@@ -444,41 +444,50 @@ export async function AdminTeamInfoPage() {
       </div>
 
       <!-- Set Rules Modal -->
-      <div class="modal" data-modal="set-rules" hidden style="max-width: 600px;">
-        <div class="modal-header">
-          <h3>Atur Komposisi Tim</h3>
-          <button class="modal-close" data-close-modal>×</button>
+      <!-- Set Rules Modal -->
+      <div class="modal" data-modal="set-rules" hidden style="max-width: 550px; border-radius: 12px; font-family: 'Inter', sans-serif;">
+        <div class="modal-header" style="border-bottom: 1px solid #eee; padding: 20px 24px;">
+          <h3 style="color: #003049; font-size: 20px; font-weight: 700; margin: 0;">Atur Komposisi Tim</h3>
+          <button class="modal-close" data-close-modal style="color: #666;">×</button>
         </div>
-        <form class="modal-form" data-form="set-rules">
-          <div class="form-group">
-            <label>Batch ID</label>
-            <input type="text" name="batch_id" required placeholder="Contoh: batch-2024" />
-            <p class="form-hint">Batch ID untuk periode capstone ini</p>
+        <form class="modal-form" data-form="set-rules" style="padding: 24px;">
+          <div class="form-group" style="margin-bottom: 20px;">
+            <label style="font-weight: 600; color: #333; font-size: 14px; margin-bottom: 8px; display: block;">Batch ID</label>
+            <input type="text" name="batch_id" required placeholder="Contoh: batch-2024" style="width: 100%; padding: 12px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 14px;" />
+            <p class="form-hint" style="color: #6b7280; font-size: 12px; margin-top: 6px;">Batch ID untuk periode capstone ini</p>
           </div>
-          <div class="form-group">
-            <label>Use Case (Opsional)</label>
-            <input type="text" name="use_case_ref" placeholder="ID Use Case (opsional)" />
-            <p class="form-hint">Kosongkan jika aturan berlaku untuk semua use case</p>
+          
+          <div class="form-group" style="margin-bottom: 24px;">
+            <label style="font-weight: 600; color: #333; font-size: 14px; margin-bottom: 8px; display: block;">Use Case (Opsional)</label>
+            <input type="text" name="use_case_ref" placeholder="ID Use Case (opsional)" style="width: 100%; padding: 12px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 14px;" />
+            <p class="form-hint" style="color: #6b7280; font-size: 12px; margin-top: 6px;">Kosongkan jika aturan berlaku untuk semua use case</p>
           </div>
-          <div class="form-group">
-            <p class="text-sm text-muted" style="margin-bottom: 12px;">
-              <strong>Tambahkan aturan komposisi tim berdasarkan Learning Path.</strong><br>
+
+          <div class="form-group" style="margin-bottom: 24px;">
+            <p class="text-sm" style="font-style: italic; color: #4b5563; font-weight: 600; font-size: 14px; margin-bottom: 4px;">
+              Tambahkan aturan komposisi tim berdasarkan Learning Path.
+            </p>
+            <p style="font-style: italic; color: #9ca3af; font-size: 13px; margin-bottom: 16px;">
               Contoh: Tim harus memiliki minimal 2 ML dan 3 FEBE
             </p>
-            <div id="rules-list" style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px;">
+            
+            <div id="rules-list" style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 16px;">
               <!-- Rules added dynamically -->
             </div>
-            <button type="button" class="btn btn-secondary btn-small" data-add-rule style="width: 100%;">+ Tambah Aturan Komposisi</button>
+            
+            <button type="button" class="btn btn-secondary" data-add-rule style="width: 100%; background: #f3f4f6; border: none; color: #1f2937; font-weight: 600; padding: 10px; border-radius: 6px; cursor: pointer; transition: background 0.2s;">
+              + Tambah Aturan Komposisi
+            </button>
           </div>
-          <div class="form-group">
-            <label>
-              <input type="checkbox" name="is_active" checked />
-              Aktifkan aturan ini
-            </label>
+
+          <div class="form-group" style="margin-bottom: 24px; display: flex; align-items: center; gap: 8px;">
+             <input type="checkbox" name="is_active" checked id="active_rule_check" style="width: 16px; height: 16px; accent-color: #0369a1;" />
+             <label for="active_rule_check" style="font-weight: 600; color: #333; font-size: 14px;">Aktifkan aturan ini</label>
           </div>
-          <div class="form-actions">
-            <button type="button" class="btn btn-outline" data-close-modal>Batal</button>
-            <button type="submit" class="btn btn-primary">Simpan Aturan</button>
+
+          <div class="form-actions" style="display: flex; justify-content: flex-end; gap: 12px; border-top: none; padding-top: 0;">
+            <button type="button" class="btn btn-outline" data-close-modal style="padding: 10px 20px; border: 1px solid #d1d5db; color: #374151; font-weight: 600; border-radius: 6px; background: white;">Batal</button>
+            <button type="submit" class="btn btn-primary" style="padding: 10px 24px; background: #003049; color: white; border: none; font-weight: 600; border-radius: 6px;">Simpan Aturan</button>
           </div>
         </form>
       </div>
@@ -514,14 +523,38 @@ export async function AdminTeamInfoPage() {
         </form>
       </div>
 
+      <!-- Add Member Modal -->
+      <div class="modal" id="add-member-modal" hidden>
+        <div class="modal-header">
+          <h3>Tambah Anggota Tim</h3>
+          <button class="modal-close" data-close-add-member-modal>×</button>
+        </div>
+        <form class="modal-form" data-add-member-form>
+          <input type="hidden" name="group_id" />
+          
+          <div class="form-group">
+            <label>User ID Siswa</label>
+            <input type="text" name="user_id" required placeholder="Contoh: user-123" />
+            <p class="form-hint">Masukkan User ID siswa yang terdaftar.</p>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn btn-outline" data-close-add-member-modal>Batal</button>
+            <button type="submit" class="btn btn-primary">Tambah Anggota</button>
+          </div>
+        </form>
+      </div>
+
       <!-- Edit Member Modal -->
-      <div class="modal" data-modal="edit-member" hidden>
+      <div class="modal" id="edit-member-modal" data-modal="edit-member" hidden>
         <div class="modal-header">
           <h3>Edit Member</h3>
           <button class="modal-close" data-close-modal>×</button>
         </div>
         <form class="modal-form" data-form="edit-member">
           <input type="hidden" name="user_id" />
+          <input type="hidden" name="group_id" />
+          
           <div class="form-group">
             <label>Learning Path</label>
             <select name="learning_path" required>
@@ -533,6 +566,16 @@ export async function AdminTeamInfoPage() {
               <option value="Mobile Development">Mobile Development</option>
             </select>
           </div>
+
+          <div class="form-group">
+            <label>Status Anggota</label>
+            <select name="status" required>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+            <p class="form-hint">Set "Inactive" jika anggota tidak lagi aktif di tim ini.</p>
+          </div>
+
           <div class="form-actions">
             <button type="button" class="btn btn-outline" data-close-modal>Batal</button>
             <button type="submit" class="btn btn-primary">Simpan</button>
@@ -729,22 +772,75 @@ function renderGroupDetail(group) {
         const memberRole = member.learning_path || member.learningPath || "-";
 
 
+        const memberStatus = member.status || "active"; // Default to active if not provided
+
         return `
-                  <div class="member-item-modern">
+                  <div class="member-item-modern ${memberStatus === 'inactive' ? 'member-inactive' : ''}" style="${memberStatus === 'inactive' ? 'opacity: 0.6;' : ''}">
                     <div class="member-avatar-modern" style="background: ${['#e0f2fe', '#f0fdf4', '#faf5ff', '#fff7ed'][index % 4]}; color: ${['#0369a1', '#15803d', '#7e22ce', '#c2410c'][index % 4]};">
                       ${(memberName).charAt(0).toUpperCase()}
                     </div>
                     <div class="member-info-modern">
-                      <div class="member-name-modern">${memberName}</div>
+                      <div class="member-name-modern">
+                        ${memberName}
+                        ${memberStatus === 'inactive' ? '<span style="font-size: 10px; background: #eee; padding: 2px 6px; border-radius: 4px; margin-left: 6px;">INACTIVE</span>' : ''}
+                      </div>
                       <div class="member-email-modern">${memberEmail}</div>
                       <div class="member-role-badge-modern">${memberRole}</div>
                     </div>
-                    <div class="member-actions-modern" style="display: flex; gap: 8px;">
-                       <button class="btn-icon-sm" data-edit-member="${memberId}" data-group-id="${normalizedGroup.group_id}" title="Edit Member">
+                    <div class="member-actions-modern" style="display: flex; align-items: center; gap: 8px;">
+                       <div style="position: relative; display: inline-block;">
+                           <select
+                               data-change-status-member="${memberId}"
+                               data-group-id="${normalizedGroup.group_id}"
+                               style="
+                                   appearance: none;
+                                   -webkit-appearance: none;
+                                   -moz-appearance: none;
+                                   padding: 6px 28px 6px 12px;
+                                   border-radius: 20px;
+                                   border: 1px solid ${memberStatus === 'inactive' ? '#e5e7eb' : '#bbf7d0'};
+                                   background-color: ${memberStatus === 'inactive' ? '#f3f4f6' : '#f0fdf4'};
+                                   color: ${memberStatus === 'inactive' ? '#374151' : '#15803d'};
+                                   font-size: 12px;
+                                   font-weight: 600;
+                                   cursor: pointer;
+                                   outline: none;
+                                   line-height: 1.4;
+                                   transition: all 0.2s ease;
+                                   box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+                               "
+                               onchange="
+                                   const isInactive = this.value === 'inactive';
+                                   this.style.backgroundColor = isInactive ? '#f3f4f6' : '#f0fdf4'; 
+                                   this.style.borderColor = isInactive ? '#e5e7eb' : '#bbf7d0'; 
+                                   this.style.color = isInactive ? '#374151' : '#15803d';
+                                   // Update the arrow color (naive approach, or just keep it neutral)
+                               "
+                           >
+                               <option value="active" ${memberStatus !== 'inactive' ? 'selected' : ''}>Active</option>
+                               <option value="inactive" ${memberStatus === 'inactive' ? 'selected' : ''}>Inactive</option>
+                           </select>
+                           <div style="
+                               position: absolute;
+                               right: 18px;
+                               top: 50%;
+                               transform: translateY(-50%);
+                               pointer-events: none;
+                               width: 8px;
+                               height: 8px;
+                           ">
+                             <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.5;">
+                               <polyline points="6 9 12 15 18 9"></polyline>
+                             </svg>
+                           </div>
+                       </div>
+                       <button class="btn-icon-sm" 
+                          data-edit-member="${memberId}" 
+                          data-group-id="${normalizedGroup.group_id}" 
+                          data-learning-path="${memberRole}"
+                          data-status="${memberStatus}"
+                          title="Edit Details">
                           ✏️
-                       </button>
-                       <button class="btn-icon-sm btn-icon-danger" data-remove-member="${memberId}" data-group-id="${normalizedGroup.group_id}" title="Hapus Anggota" style="color: #ef4444; border-color: #fecaca; background: #fef2f2;">
-                          🗑️
                        </button>
                     </div>
                   </div>
@@ -784,63 +880,7 @@ function renderGroupDetail(group) {
         </div>
       </div>
 
-      <!-- Add Member Modal -->
-      <div class="modal-backdrop" id="add-member-modal" hidden>
-        <div class="modal-content" style="max-width: 500px;">
-          <div class="modal-header">
-            <h2>Tambah Anggota Tim</h2>
-            <button class="btn-icon" data-close-add-member-modal>×</button>
-          </div>
-          <div class="modal-body">
-            <form id="add-member-form" data-add-member-form>
-               <input type="hidden" name="group_id" value="${normalizedGroup.group_id}">
-               <div class="form-group">
-                 <label>User ID (UUID)</label>
-                 <input type="text" name="user_id" class="form-control" placeholder="Masukkan ID Peserta" required>
-                 <small class="text-muted">Masukkan UUID peserta yang belum memiliki tim.</small>
-               </div>
-               <div class="modal-actions">
-                 <button type="button" class="btn-secondary" data-close-add-member-modal>Batal</button>
-                 <button type="submit" class="btn-primary">
-                    <span>+</span> Tambahkan
-                 </button>
-               </div>
-            </form>
-      </div>
 
-      <!-- Edit Member Modal -->
-      <div class="modal-backdrop" id="edit-member-modal" hidden>
-        <div class="modal-content" style="max-width: 500px;">
-          <div class="modal-header">
-            <h2>Edit Learning Path</h2>
-            <button class="btn-icon" data-close-edit-member-modal>×</button>
-          </div>
-          <div class="modal-body">
-            <form id="edit-member-form" data-edit-member-form>
-               <input type="hidden" name="user_id">
-               <input type="hidden" name="group_id">
-               
-               <div class="form-group">
-                 <label>Pilih Learning Path Baru</label>
-                 <select name="learning_path" class="form-control" required>
-                    <option value="" disabled selected>Pilih Path...</option>
-                    <option value="Machine Learning (ML)">Machine Learning (ML)</option>
-                    <option value="Cloud Computing (CC)">Cloud Computing (CC)</option>
-                    <option value="Mobile Development (MD)">Mobile Development (MD)</option>
-                    <option value="Front-End Web & Back-End with AI (FEBE)">Front-End Web & Back-End with AI (FEBE)</option>
-                 </select>
-               </div>
-
-               <div class="modal-actions">
-                 <button type="button" class="btn-secondary" data-close-edit-member-modal>Batal</button>
-                 <button type="submit" class="btn-primary">
-                    💾 Simpan Perubahan
-                 </button>
-               </div>
-            </form>
-          </div>
-        </div>
-      </div>
 
     </div>
   `;
