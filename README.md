@@ -5,7 +5,7 @@
 **Capstone Team Management Dashboard** adalah aplikasi web yang dirancang untuk membantu admin dan user dalam mengelola seluruh proses capstone secara terpusat dan efisien. Mulai dari pengelolaan timeline, manajemen tim, pengiriman email otomatis, hingga pembagian tim secara acak (*randomize team*).
 
 Aplikasi ini dibuat dengan tampilan yang **responsif**, **ringan**, dan **mudah digunakan**, sehingga mempermudah admin dan user dalam memantau dan mengelola aktivitas capstone.
-
+(BACKEND di Branch Dedek)
 ---
 
 ## 🛠️ Tech Stack
@@ -147,3 +147,4 @@ EMAIL_FROM="Admin Capstone <email@example.com>"
 ---
 
 ⭐ Jika project ini membantu, jangan lupa beri **star** di repository GitHub!
+
