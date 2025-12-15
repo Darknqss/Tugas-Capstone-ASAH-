@@ -47,21 +47,27 @@ npm install
 
 ### 3️⃣ Konfigurasi Environment (Frontend)
 
-Buat file **`.env`** di root project frontend dan isi dengan konfigurasi berikut (gunakan placeholder untuk keamanan):
+Buat file **`.env`** di root project frontend dan isi dengan salah satu konfigurasi berikut.
 
-````env
+#### Opsi 1: Contoh Aman (Disarankan untuk Repository Publik)
+
+```env
 VITE_API_BASE_URL=http://localhost:5000
 EMAIL_SERVICE=gmail
 EMAIL_USER=your_email@gmail.com
 EMAIL_PASS=your_app_password
+```
+
+#### Opsi 2: Contoh Konfigurasi Lokal
+
 ```env
 VITE_API_BASE_URL=http://localhost:5000
 EMAIL_SERVICE=gmail
 EMAIL_USER=capstonetrack09@gmail.com
-EMAIL_PASS=bzvdehotggypdtia
-````
+EMAIL_PASS=your_app_password
+```
 
-> ⚠️ **Catatan:** Pastikan email dan app password Gmail sudah dikonfigurasi dengan benar.
+> ⚠️ **Catatan:** Gunakan **App Password Gmail**, bukan password email utama, dan jangan commit file `.env` ke repository publik.
 
 ### 4️⃣ Menjalankan Aplikasi
 
@@ -99,22 +105,45 @@ Aplikasi akan berjalan di:
 
 ---
 
+---
+
 ## 🧪 Backend Environment Variables
 
-Tambahkan konfigurasi berikut pada file **`.env`** di sisi backend (contoh aman untuk repository publik):
+Untuk menjalankan backend, diperlukan konfigurasi environment variables berikut. **Nilai asli tidak ditampilkan** demi keamanan.
 
-````env
-SUPABASE_URL=your_supabase_project_url
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+```env
+SUPABASE_URL=
+SUPABASE_SERVICE_ROLE_KEY=
 PORT=3000
-JWT_SECRET=your_jwt_secret
+JWT_SECRET=
 BCRYPT_SALT_ROUNDS=10
 EMAIL_SERVICE=gmail
-EMAIL_USER=your_email@gmail.com
-EMAIL_PASS=your_app_password
-EMAIL_FROM="Admin Capstone <your_email@gmail.com>"
+EMAIL_USER=
+EMAIL_PASS=
+EMAIL_FROM="Admin Capstone <email@example.com>"
+```
 
- ⚠️ **Keamanan:** Pastikan file `.env` **tidak di-commit** ke repository publik.
+> ⚠️ **Keamanan:** Jangan pernah menyertakan nilai asli `.env` ke repository publik.
+
+---
+
+## 🧪 Backend Environment Variables
+
+Untuk menjalankan backend, diperlukan konfigurasi environment variables berikut. **Nilai asli tidak ditampilkan** demi keamanan.
+
+```env
+SUPABASE_URL=
+SUPABASE_SERVICE_ROLE_KEY=
+PORT=3000
+JWT_SECRET=
+BCRYPT_SALT_ROUNDS=10
+EMAIL_SERVICE=gmail
+EMAIL_USER=
+EMAIL_PASS=
+EMAIL_FROM="Admin Capstone <email@example.com>"
+```
+
+> ⚠️ **Keamanan:** Jangan pernah menyertakan nilai asli `.env` ke repository publik.
 
 ---
 
