@@ -1760,6 +1760,19 @@ class App {
             member_source_ids: memberSourceIds,
         };
 
+        // Debug: Check current user profile
+        try {
+            const { getProfile } = await import("./services/userService.js");
+            const profileCheck = await getProfile();
+            console.log("[DEBUG] Current User Profile:", profileCheck?.data);
+            console.log("[DEBUG] Learning Path:", profileCheck?.data?.learning_path);
+            console.log("[DEBUG] University:", profileCheck?.data?.university);
+        } catch (e) {
+            console.warn("[DEBUG] Could not fetch profile for debugging:", e);
+        }
+
+        console.log("[DEBUG] Registration Payload:", payload);
+
         try {
             this.toggleSubmitLoading(form, true);
             const { registerTeam } = await import("./services/groupService.js");
