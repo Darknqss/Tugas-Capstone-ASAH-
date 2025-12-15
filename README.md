@@ -114,7 +114,7 @@ EMAIL_USER=your_email@gmail.com
 EMAIL_PASS=your_app_password
 EMAIL_FROM="Admin Capstone <your_email@gmail.com>"
 
-> ⚠️ **Keamanan:** Pastikan file `.env` **tidak di-commit** ke repository publik.
+ ⚠️ **Keamanan:** Pastikan file `.env` **tidak di-commit** ke repository publik.
 
 ---
 
