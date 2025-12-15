@@ -80,7 +80,15 @@ export async function TeamInfoPage() {
                             </tr>
                         </thead>
                         <tbody>
-                            ${teamData.members.map(member => `
+                            ${teamData.members
+                .sort((a, b) => {
+                    const roleA = (a.role || '').toLowerCase();
+                    const roleB = (b.role || '').toLowerCase();
+                    if (roleA === 'leader') return -1;
+                    if (roleB === 'leader') return 1;
+                    return (a.name || '').localeCompare(b.name || '');
+                })
+                .map(member => `
                                 <tr>
                                     <td><strong>${member.name || 'N/A'}</strong></td>
                                     <td><span class="role-badge role-badge--${(member.role || 'member').toLowerCase()}">${(member.role || 'member').charAt(0).toUpperCase() + (member.role || 'member').slice(1)}</span></td>
