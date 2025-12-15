@@ -229,6 +229,42 @@ async function registerTeamService(creatorId, { group_name, member_source_ids, u
 
   const batchId = creator.batch_id || "asah-batch-1";
 
+  // --- NEW: Registration Period Check ---
+  // Cek apakah ada timeline "Capstone Registration" yang aktif
+  const { data: timelines } = await supabase
+    .from("capstone_timeline")
+    .select("start_at, end_at, title")
+    .eq("batch_id", batchId)
+    .or("title.ilike.%Registration%,title.ilike.%Registrasi%"); // Cek keyword Registration ATAU Registrasi
+
+  if (timelines && timelines.length > 0) {
+    // Ambil timeline "Registration" yang paling relevan (misal yang sedang berlangsung atau yang terakhir dibuat)
+    // Asumsi: Jika ada banyak, kita cek apakah hari ini masuk dalam SALAH SATU periode tersebut.
+    // Jika tidak masuk ke salah satu pun, maka Registration Closed.
+    const now = new Date();
+    let isOpen = false;
+
+    for (const tl of timelines) {
+      const start = new Date(tl.start_at);
+      const end = new Date(tl.end_at);
+      end.setHours(23, 59, 59, 999); // End of day
+
+      if (now >= start && now <= end) {
+        isOpen = true; // Found an open slot
+        break;
+      }
+    }
+
+    if (!isOpen) {
+      throw { 
+        code: "REGISTRATION_CLOSED", 
+        message: "Pendaftaran tim saat ini sedang DITUTUP. Silakan cek timeline." 
+      };
+    }
+  }
+  // If no timeline found, assume OPEN by default (or you can make it CLOSED by default)
+  // --- END NEW ---
+
   // 1. Validasi Anggota (Source ID)
   // Pastikan creator's source_id ada di dalam member_source_ids
   if (!member_source_ids.includes(creator.users_source_id)) {
@@ -322,6 +358,13 @@ async function registerTeamService(creatorId, { group_name, member_source_ids, u
     }
   }
 
+// Helper to generate Group Source ID (CAPS + Timestamp + Random)
+function generateGroupSourceId() {
+  const timestamp = new Date().getTime().toString().slice(-4);
+  const random = Math.floor(1000 + Math.random() * 9000); // 4 digit random
+  return `CAPS-${timestamp}${random}`;
+}
+
   // 4. Simpan Data Tim
   const { data: group, error: groupErr } = await supabase
     .from("capstone_groups")
@@ -332,6 +375,7 @@ async function registerTeamService(creatorId, { group_name, member_source_ids, u
       use_case_ref: use_case_id,
       status: "pending_validation",
       created_at: new Date().toISOString(),
+      capstone_groups_source_id: generateGroupSourceId(), // Auto-generate CAPS ID
     })
     .select()
     .single();

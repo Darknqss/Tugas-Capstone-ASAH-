@@ -9,23 +9,26 @@ const { buildErrorResponse } = require("../utils/respons");
  * POST /api/group/feedback
  */
 async function submitFeedback(req, res) {
-  const { reviewee_source_id, is_member_active, contribution_level, reason } = req.body;
+  const { reviewee_id, reviewee_source_id, is_member_active, contribution_level, reason, group_ref, batch_id } = req.body;
 
-  if (!reviewee_source_id || is_member_active === undefined || !contribution_level || !reason) {
+  if ((!reviewee_id && !reviewee_source_id) || is_member_active === undefined || !contribution_level || !reason) {
     return buildErrorResponse(
       res,
       400,
-      "Semua field wajib diisi (ID anggota, status aktif, level kontribusi, alasan).",
+      "Semua field wajib diisi (Target User ID/Source ID, status aktif, level kontribusi, alasan).",
       "VALIDATION_FAILED"
     );
   }
 
   try {
     const data = await submitFeedbackService(req.user.userId, {
+      reviewee_id,
       reviewee_source_id,
       is_member_active,
       contribution_level,
       reason,
+      group_ref, // Optional / Explicit
+      batch_id   // Optional / Explicit
     });
 
     return res.status(201).json({
@@ -71,8 +74,10 @@ async function getFeedbackStatus(req, res) {
  * GET /api/admin/feedback/export
  */
 async function adminGetFeedbackExport(req, res) {
+  const { batch_id, group_id } = req.query; // Get filters from query
+
   try {
-    const data = await getFeedbackExportService();
+    const data = await getFeedbackExportService({ batch_id, group_id });
     return res.status(200).json({
       message: "Berhasil mengambil data export feedback.",
       data,

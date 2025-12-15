@@ -10,13 +10,13 @@ const { buildErrorResponse } = require("../utils/respons");
  * POST /api/group/worksheets
  */
 async function submitWorksheet(req, res) {
-  const { activity_description, proof_url, period_start, period_end } = req.body;
+  const { activity_description, proof_url, period_id } = req.body;
 
-  if (!activity_description || !proof_url || !period_start || !period_end) {
+  if (!activity_description || !proof_url || !period_id) {
     return buildErrorResponse(
       res,
       400,
-      "Deskripsi, bukti URL, tanggal mulai, dan tanggal akhir wajib diisi.",
+      "Deskripsi, bukti URL, dan Period ID wajib diisi.",
       "VALIDATION_FAILED"
     );
   }
@@ -25,8 +25,7 @@ async function submitWorksheet(req, res) {
     const data = await submitWorksheetService(req.user.userId, {
       activity_description,
       proof_url,
-      period_start,
-      period_end,
+      period_id,
     });
 
     return res.status(201).json({

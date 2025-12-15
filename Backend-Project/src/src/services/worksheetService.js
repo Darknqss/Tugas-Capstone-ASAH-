@@ -1,9 +1,11 @@
 const { supabase } = require("../config/supabaseClient");
 
+const { getPeriodByIdService } = require("./periodService");
+
 /**
  * Submit a new worksheet (Check-in)
  * @param {string} userId - ID of the student
- * @param {object} data - { activity_description, proof_url, period_start, period_end }
+ * @param {object} data - { activity_description, proof_url, period_id }
  */
 async function submitWorksheetService(userId, data) {
   // 1. Get User's Group & Batch Info
@@ -22,7 +24,29 @@ async function submitWorksheetService(userId, data) {
     throw { code: "NO_TEAM", message: "User does not belong to a team." };
   }
 
-  // 2. Insert Worksheet
+  // 2. Validate Period & Get Dates
+  if (!data.period_id) {
+    throw { code: "VALIDATION_FAILED", message: "Period ID wajib diisi." };
+  }
+
+  const period = await getPeriodByIdService(data.period_id);
+
+  // 2b. Logic Status: Check Late Submission
+  const submittedAt = new Date();
+  const periodEnd = new Date(period.end_date);
+  
+  // Set end of day for periodEnd (23:59:59)
+  periodEnd.setHours(23, 59, 59, 999);
+
+  let initialStatus = "submitted";
+  if (submittedAt > periodEnd) {
+    initialStatus = "submitted_late";
+  }
+
+  // 3. Insert Worksheet
+  // Note: We're storing period_id if your table has it, OR just start/end dates.
+  // Assuming the user's legacy table supports start/end, we'll map them from the period.
+  // Ideally, you should ADD check_in_period_ref to capstone_worksheets, but for now we follow the existing fields.
   const { data: worksheet, error } = await supabase
     .from("capstone_worksheets")
     .insert({
@@ -31,10 +55,10 @@ async function submitWorksheetService(userId, data) {
       batch_id: user.batch_id,
       activity_description: data.activity_description,
       proof_url: data.proof_url,
-      period_start: data.period_start,
-      period_end: data.period_end,
-      status: "submitted",
-      submitted_at: new Date().toISOString(),
+      period_start: period.start_date, // Auto-filled from Period
+      period_end: period.end_date,     // Auto-filled from Period
+      status: initialStatus,
+      submitted_at: submittedAt.toISOString(),
     })
     .select()
     .single();
@@ -89,8 +113,12 @@ async function getAllWorksheetsService({ batch_id, status, user_id }) {
  * Admin: Validate worksheet
  */
 async function validateWorksheetService(worksheetId, { status, feedback }) {
-  if (!["approved", "rejected", "late"].includes(status)) {
-    throw { code: "INVALID_STATUS", message: "Invalid status value." };
+  // Valid status: 'completed' (Selesai), 'completed_late' (Selesai Terlambat), 'missed' (Tidak Selesai)
+  // Also keeping 'submitted' or 'submitted_late' if reverting is needed, but for validation mainly these 3.
+  const validStatuses = ["completed", "completed_late", "missed"];
+  
+  if (!validStatuses.includes(status)) {
+    throw { code: "INVALID_STATUS", message: "Invalid status value. Use: completed, completed_late, or missed." };
   }
 
   const { data, error } = await supabase

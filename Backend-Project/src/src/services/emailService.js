@@ -2,12 +2,23 @@ const nodemailer = require("nodemailer");
 
 // Create reusable transporter object using the default SMTP transport
 // For development, we can use Ethereal or just log to console if no env vars
+// Create reusable transporter object using valid SMTP transport
 const transporter = nodemailer.createTransport({
-  service: process.env.EMAIL_SERVICE || "gmail", // e.g., 'gmail'
+  service: process.env.EMAIL_SERVICE || "gmail",
   auth: {
-    user: process.env.EMAIL_USER, // generated ethereal user
-    pass: process.env.EMAIL_PASS, // generated ethereal password
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
   },
+  // Vercel / Serverless Optimization
+  pool: true, // Use pooled connections
+  maxConnections: 1, // Limit connections to avoid overwhelming server or hitting limits
+  rateLimit: 5, // Rate limit
+  // Timeouts to prevent hanging
+  connectionTimeout: 10000, // 10 seconds
+  greetingTimeout: 5000,    // 5 seconds
+  socketTimeout: 10000,     // 10 seconds
+  debug: true, // Show debug output
+  logger: true // Log information to console
 });
 
 /**
@@ -76,8 +87,27 @@ async function sendTeamValidationEmail(emails, groupName, status, reason) {
   }
 }
 
+/**
+ * Send Worksheet Reminder Email
+ */
+async function sendWorksheetReminderEmail(emails, periodTitle, endDate) {
+  const subject = `Pengingat: Batas Waktu Worksheet ${periodTitle}`;
+  const html = `
+    <h3>Halo!</h3>
+    <p>Ini adalah pengingat untuk segera mengisi <b>${periodTitle}</b>.</p>
+    <p>Batas waktu pengumpulan adalah: <b>${endDate}</b></p>
+    <p>Mohon segera selesaikan sebelum tenggat waktu.</p>
+    <p>Terima kasih.</p>
+  `;
+
+  for (const email of emails) {
+    await sendEmail(email, subject, html);
+  }
+}
+
 module.exports = {
   sendEmail,
   sendTeamRegistrationEmail,
   sendTeamValidationEmail,
+  sendWorksheetReminderEmail,
 };

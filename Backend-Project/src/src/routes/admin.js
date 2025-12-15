@@ -6,9 +6,18 @@ const {
   updateGroup,
   updateProjectStatus,
   listAllGroups,
+  getGroupDetails,
   setGroupRules,
   validateGroupRegistration,
   updateStudentLearningPath,
+  addMemberToGroup,
+  updateMemberStatus,
+  autoAssignMembers,
+  getUnassignedStudents,
+  createTimeline,
+  exportGroups,
+  updateTimeline,
+  deleteTimeline,
 } = require("../controllers/adminController");
 const { listDeliverables } = require("../controllers/adminDeliverableController");
 const {
@@ -16,6 +25,7 @@ const {
   validateWorksheet,
 } = require("../controllers/worksheetController");
 const { adminGetFeedbackExport } = require("../controllers/feedbackController");
+const { createPeriod, sendReminder } = require("../controllers/periodController");
 
 // --- Rute Grup ---
 
@@ -35,6 +45,14 @@ router.put(
   updateGroup
 );
 
+// Get Group Details
+router.get(
+  "/groups/:groupId",
+  authenticateCustomJWT,
+  authorizeRoles(["ADMIN"]),
+  getGroupDetails
+);
+
 // List All Groups
 router.get(
   "/groups",
@@ -49,6 +67,38 @@ router.put(
   authenticateCustomJWT,
   authorizeRoles(["ADMIN"]),
   updateStudentLearningPath
+);
+
+// Get Unassigned Students
+router.get(
+    "/users/unassigned",
+    authenticateCustomJWT,
+    authorizeRoles(["ADMIN"]),
+    getUnassignedStudents
+);
+
+// Add Member to Group
+router.post(
+    "/groups/:groupId/members",
+    authenticateCustomJWT,
+    authorizeRoles(["ADMIN"]),
+    addMemberToGroup
+);
+  
+// Update Member Status (Active/Inactive)
+router.put(
+    "/groups/:groupId/members/:userId",
+    authenticateCustomJWT,
+    authorizeRoles(["ADMIN"]),
+    updateMemberStatus
+);
+
+// Auto Assign (Randomize)
+router.post(
+    "/groups/auto-assign",
+    authenticateCustomJWT,
+    authorizeRoles(["ADMIN"]),
+    autoAssignMembers
 );
 
 // --- Rute Project Status ---
@@ -72,7 +122,7 @@ router.post(
 );
 
 // Validate Group Registration
-router.post(
+router.put(
   "/groups/:groupId/validate",
   authenticateCustomJWT,
   authorizeRoles(["ADMIN"]),
@@ -109,6 +159,54 @@ router.get(
   authenticateCustomJWT,
   authorizeRoles(["ADMIN"]),
   adminGetFeedbackExport
+);
+
+// Export Groups
+router.get(
+  "/groups/export",
+  authenticateCustomJWT,
+  authorizeRoles(["ADMIN"]),
+  exportGroups
+);
+
+// Create Timeline (NEW)
+router.post(
+  "/timeline",
+  authenticateCustomJWT,
+  authorizeRoles(["ADMIN"]),
+  createTimeline
+);
+
+// Update Timeline
+router.put(
+  "/timeline/:id",
+  authenticateCustomJWT,
+  authorizeRoles(["ADMIN"]),
+  updateTimeline
+);
+
+// Delete Timeline
+router.delete(
+  "/timeline/:id",
+  authenticateCustomJWT,
+  authorizeRoles(["ADMIN"]),
+  deleteTimeline
+);
+
+// Create Check-in Period
+router.post(
+  "/periods",
+  authenticateCustomJWT,
+  authorizeRoles(["ADMIN"]),
+  createPeriod
+);
+
+// Send Period Reminder
+router.post(
+  "/periods/:id/remind",
+  authenticateCustomJWT,
+  authorizeRoles(["ADMIN"]),
+  sendReminder
 );
 
 module.exports = router;
