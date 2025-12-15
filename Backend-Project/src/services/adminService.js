@@ -4,8 +4,8 @@ const { sendTeamValidationEmail } = require("./emailService");
 /**
  * Update Student Learning Path (Admin Override)
  */
-async function updateStudentLearningPathService(userId, { learning_path }) {
-  // Validate Enum
+async function updateStudentLearningPathService(userIdOrSourceId, { learning_path }) {
+  // 1. Validate Enum
   const validPaths = [
     "Machine Learning (ML)", 
     "Front-End Web & Back-End with AI (FEBE)", 
@@ -18,12 +18,28 @@ async function updateStudentLearningPathService(userId, { learning_path }) {
     };
   }
 
-  // Admin Override: No check for previous value ("Bebas")
+  // 2. Resolve User (Support both UUID and Source ID)
+  let userQuery = supabase.from("users").select("id");
+  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userIdOrSourceId);
+
+  if (isUUID) {
+     userQuery = userQuery.eq("id", userIdOrSourceId);
+  } else {
+     userQuery = userQuery.eq("users_source_id", userIdOrSourceId);
+  }
+
+  const { data: targetUser } = await userQuery.single();
+
+  if (!targetUser) {
+    throw { code: "USER_NOT_FOUND", message: `User tidak ditemukan (ID: ${userIdOrSourceId}).` };
+  }
+
+  // 3. Admin Override: Update
   const { data: user, error } = await supabase
     .from("users")
     .update({ learning_path, updated_at: new Date().toISOString() })
-    .eq("id", userId)
-    .select("id, name, email, learning_path")
+    .eq("id", targetUser.id) // Use resolved UUID
+    .select("id, name, email, learning_path, users_source_id")
     .single();
 
   if (error) {
@@ -318,35 +334,64 @@ async function listDeliverablesService({ document_type, use_case_id }) {
 /**
  * Add a member to a group (Admin Manual)
  */
-async function addMemberToGroupService(groupId, userId) {
-  // 1. Check if user is already in an active group
+async function addMemberToGroupService(groupId, userIdOrSourceId) {
+  // 1. Resolve User (Support both UUID and Source ID)
+  let userQuery = supabase.from("users").select("id, users_source_id");
+  
+  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userIdOrSourceId);
+  
+  if (isUUID) {
+     userQuery = userQuery.eq("id", userIdOrSourceId);
+  } else {
+     // Assume Source ID if not UUID
+     userQuery = userQuery.eq("users_source_id", userIdOrSourceId);
+  }
+
+  const { data: user } = await userQuery.single();
+
+  if (!user) {
+    throw { code: "USER_NOT_FOUND", message: `User tidak ditemukan (ID: ${userIdOrSourceId}). Pastikan ID atau Source ID benar.` };
+  }
+
+  const userUuid = user.id;
+
+  // 2. Check Group Existence & Capacity (Max 4)
+  const { data: groupMembers, error: groupErr } = await supabase
+    .from("capstone_group_member")
+    .select("id")
+    .eq("group_ref", groupId)
+    .eq("state", "active");
+
+  if (groupErr) {
+    throw { code: "DB_ERROR", message: "Gagal mengecek data grup." };
+  }
+
+  if (groupMembers.length >= 4) {
+    throw { code: "GROUP_FULL", message: "Grup sudah penuh (Maksimal 4 anggota)." };
+  }
+
+  // 3. Check if user is already in ANY active group
   const { data: existing } = await supabase
     .from("capstone_group_member")
     .select("id, group_ref")
-    .eq("user_ref", userId)
+    .eq("user_ref", userUuid)
     .eq("state", "active")
     .maybeSingle();
 
   if (existing) {
+    if (existing.group_ref === groupId) {
+      throw { code: "ALREADY_MEMBER", message: "User sudah menjadi anggota grup ini." };
+    }
     throw { code: "ALREADY_IN_TEAM", message: "User sudah tergabung dalam tim lain." };
   }
 
-  // 1b. Get User Source ID
-  const { data: user } = await supabase
-    .from("users")
-    .select("users_source_id")
-    .eq("id", userId)
-    .single();
-
-  if (!user) throw { code: "USER_NOT_FOUND", message: "User tidak ditemukan." };
-
-  // 2. Add to group
+  // 4. Add to group
   const { data, error } = await supabase
     .from("capstone_group_member")
     .insert({
       group_ref: groupId,
-      user_ref: userId,
-      user_id: user.users_source_id, // Populate Source ID column
+      user_ref: userUuid,
+      user_id: user.users_source_id, // Ensure we store the Source ID text
       role: "member",
       state: "active",
       joined_at: new Date().toISOString(),
@@ -411,7 +456,6 @@ async function autoAssignMembersService(batchId) {
 
   // 3. Get All Use Cases
   const { data: useCases } = await supabase
-    .from("capstone_use_case")
     .from("capstone_use_case")
     .select("id, name, capstone_use_case_source_id");
 

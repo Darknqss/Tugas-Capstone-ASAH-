@@ -248,6 +248,8 @@ async function registerTeam(req, res) {
       "INVALID_COMPOSITION",
       "RULES_NOT_FOUND",
       "VALIDATION_FAILED",
+      "REGISTRATION_CLOSED",
+      "PROFILE_INCOMPLETE"
     ].includes(err.code)
       ? 400
       : 500;

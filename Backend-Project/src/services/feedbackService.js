@@ -101,18 +101,6 @@ async function submitFeedbackService(reviewerId, data) {
   if (existing) {
     throw { code: "ALREADY_SUBMITTED", message: "Anda sudah menilai anggota ini." };
   } 
-
-  // 4. Insert Feedback
-  // Use explicit values if provided (and validated?), otherwise derived
-  // For safety, we keep using derived values for critical logic, but we can verify consistency? 
-  // User asked "kalo responsenya seperti ini", implying they WANT to send it.
-  // Let's use the explicit ones if matched, or just rely on derived because it's safer.
-  // Actually, let's use the derived ones as primary to ensure data integrity, 
-  // BUT if the user passed explicit ones that mismatch, we could throw error?
-  // Or just ignore them. The user prompt implies they want to SEND it.
-  // If I just ignore them and store derived, the result in DB is the same (correct).
-  // But if the user sends WRONG group_id, and I store CORRECT one, that's fine.
-  // Let's stick to derived for safety (DB consistency), but allow them in payload without error.
   
   const finalGroupRef = reviewerGroup.group_ref; 
   const finalBatchId = revieweeBatchId;
@@ -159,12 +147,21 @@ async function getFeedbackStatusService(userId) {
 
   if (!myGroup) return [];
 
+  // Get current user's batch info
+  const { data: currentUser } = await supabase
+    .from("users")
+    .select("batch_id")
+    .eq("id", userId) 
+    .single();
+
+  const batchId = currentUser?.batch_id;
+
   const { data: teamMembers } = await supabase
     .from("capstone_group_member")
     .select("user_ref, user_id, users:user_ref(name, users_source_id)")
     .eq("group_ref", myGroup.group_ref)
     .eq("state", "active")
-    .neq("user_ref", userId); // Exclude self
+    .neq("user_ref", userId); // Filter out self
 
   // Get completed reviews with details
   const { data: completedReviews } = await supabase
@@ -182,9 +179,11 @@ async function getFeedbackStatusService(userId) {
   return teamMembers.map(m => {
     const review = reviewsMap[m.user_ref];
     return {
-      id: m.user_ref, // User ID (UUID)
-      source_id: m.users?.users_source_id || m.user_id,
+      reviewee_id: m.user_ref, // Matches POST body
+      reviewee_source_id: m.users?.users_source_id || m.user_id, // Matches POST body
       name: m.users?.name || "Unknown Member",
+      group_id: myGroup.group_ref, // Explicit Group ID for POST
+      batch_id: batchId,           // Explicit Batch ID for POST
       status: review ? "completed" : "pending",
       // Include feedback details if completed
       feedback: review ? {
