@@ -95,6 +95,7 @@ export async function setGroupRules(payload) {
 // B. Team Member Management
 
 // 1. Add Member to Group
+// 1. Add Member to Group
 export async function addMemberToGroup(groupId, payload) {
   const response = await fetch(`${API_BASE_URL}/admin/groups/${groupId}/members`, {
     method: "POST",
@@ -109,6 +110,16 @@ export async function removeMemberFromGroup(groupId, userId) {
   const response = await fetch(`${API_BASE_URL}/admin/groups/${groupId}/members/${userId}`, {
     method: "DELETE",
     headers: getAuthHeaders(),
+  });
+  return handleResponse(response);
+}
+
+// 3. Update Member Status
+export async function updateMemberStatus(groupId, userId, payload) {
+  const response = await fetch(`${API_BASE_URL}/admin/groups/${groupId}/members/${userId}`, {
+    method: "PUT",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(payload), // { status: "inactive" | "active" }
   });
   return handleResponse(response);
 }
