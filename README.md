@@ -127,26 +127,6 @@ EMAIL_FROM="Admin Capstone <email@example.com>"
 
 ---
 
-## 🧪 Backend Environment Variables
-
-Untuk menjalankan backend, diperlukan konfigurasi environment variables berikut. **Nilai asli tidak ditampilkan** demi keamanan.
-
-```env
-SUPABASE_URL=
-SUPABASE_SERVICE_ROLE_KEY=
-PORT=3000
-JWT_SECRET=
-BCRYPT_SALT_ROUNDS=10
-EMAIL_SERVICE=gmail
-EMAIL_USER=
-EMAIL_PASS=
-EMAIL_FROM="Admin Capstone <email@example.com>"
-```
-
-> ⚠️ **Keamanan:** Jangan pernah menyertakan nilai asli `.env` ke repository publik.
-
----
-
 ## 📝 Catatan
 
 * Pastikan **backend sudah berjalan** sebelum menjalankan frontend
