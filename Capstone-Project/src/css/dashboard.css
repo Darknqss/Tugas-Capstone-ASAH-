@@ -26,6 +26,12 @@
   padding: 30px 0;
 }
 
+@media (max-width: 900px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Card Styles */
 .card {
   background-color: var(--white);

@@ -3002,7 +3002,7 @@ class App {
         }
     }
 
-    openEditMemberModal(groupId, userId) {
+    openEditMemberModal(groupId, userId, learningPath, status) {
         const modal = document.getElementById("edit-member-modal");
         if (modal) {
             const form = modal.querySelector('form');
@@ -3010,11 +3010,30 @@ class App {
                 form.reset();
                 const userInput = form.querySelector('[name="user_id"]');
                 const groupInput = form.querySelector('[name="group_id"]');
+                const learningPathSelect = form.querySelector('[name="learning_path"]');
+                const statusSelect = form.querySelector('[name="status"]');
+
                 if (userInput) userInput.value = userId;
                 if (groupInput) groupInput.value = groupId;
+
+                if (learningPathSelect && learningPath) {
+                    // Try to match exact value or close match if needed, but exact is safer for select
+                    // Assuming values match the user data
+                    learningPathSelect.value = learningPath;
+
+                    // Fallback: If value doesn't exist in options (e.g. slight naming diff), try text match
+                    if (learningPathSelect.selectedIndex === -1) {
+                        // Optional: Add logic to find by text if needed, but usually values align
+                        console.warn("Learning Path value not found in select options:", learningPath);
+                    }
+                }
+
+                if (statusSelect && status) {
+                    statusSelect.value = status.toLowerCase();
+                }
             }
             modal.hidden = false;
-            modal.style.display = "flex";
+            // modal.style.display = "flex"; // REMOVED: This caused layout issues (row direction)
         } else {
             console.error("Edit Member Modal not found");
         }

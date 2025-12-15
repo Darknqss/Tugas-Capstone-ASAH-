@@ -14,14 +14,24 @@ export async function DashboardPage() {
     // Initialize data containers
     let teamData = null;
     let worksheetsData = [];
+    let feedbackData = [];
     let hasTeam = false;
+    let pendingFeedbackCount = 0;
+    let feedbackStatusText = "Buka Halaman Feedback";
+    let feedbackSubText = "Nilai kontribusi anggota tim Anda";
+    let feedbackIcon = "💬";
+    let feedbackColor = "inherit";
 
     // Fetch data if user is logged in
     if (session?.user) {
         try {
-            const [teamRes, worksheetsRes] = await Promise.allSettled([
+            // Import dynamically to avoid circular deps if any, or just standard import
+            const { getFeedbackStatus } = await import("../services/groupService.js");
+
+            const [teamRes, worksheetsRes, feedbackRes] = await Promise.allSettled([
                 getMyTeam(),
-                getMyWorksheets()
+                getMyWorksheets(),
+                getFeedbackStatus()
             ]);
 
             if (teamRes.status === 'fulfilled' && teamRes.value?.data) {
@@ -31,6 +41,38 @@ export async function DashboardPage() {
 
             if (worksheetsRes.status === 'fulfilled' && worksheetsRes.value?.data) {
                 worksheetsData = Array.isArray(worksheetsRes.value.data) ? worksheetsRes.value.data : [];
+            }
+
+            if (feedbackRes.status === 'fulfilled' && feedbackRes.value?.data) {
+                feedbackData = feedbackRes.value.data;
+                // Count pending items that are NOT the current user
+                // Assuming backend filters self or we filter here if needed.
+                // Based on previous step, backend returns list including me probably, but we filter pending.
+                // Let's filter: status is 'pending' or 'not_started' AND reviewee is not me.
+                const currentUserId = session.user.source_id || session.user.users_source_id;
+
+                const pendingItems = feedbackData.filter(item => {
+                    const isPending = item.status === 'pending' || item.status === 'not_started';
+                    const isNotMe = (item.reviewee_id !== currentUserId) && (item.reviewee_source_id !== currentUserId);
+                    return isPending && isNotMe;
+                });
+
+                pendingFeedbackCount = pendingItems.length;
+
+                if (feedbackData.length === 0) {
+                    feedbackStatusText = "Belum Ada Anggota";
+                    feedbackSubText = "Bergabunglah dengan tim untuk menilai";
+                } else if (pendingFeedbackCount > 0) {
+                    feedbackStatusText = `${pendingFeedbackCount} Penilaian Menunggu`;
+                    feedbackSubText = "Selesaikan penilaian rekan tim Anda";
+                    feedbackIcon = "⚠️";
+                    feedbackColor = "#d97706"; // Amber/Orange
+                } else {
+                    feedbackStatusText = "Semua Selesai!";
+                    feedbackSubText = "Terima kasih atas kontribusi Anda";
+                    feedbackIcon = "✅";
+                    feedbackColor = "#059669"; // Green
+                }
             }
         } catch (error) {
             console.error("Error fetching dashboard data:", error);
@@ -186,13 +228,13 @@ export async function DashboardPage() {
                     </div>
 
                     <!-- 360-Degree Feedback Card -->
-                    <div class="card" style="margin-top: 30px;">
+                    <div class="card" style="margin-top: 30px; height: auto;">
                         <h2 class="card-title">360-Degree Feedback</h2>
-                        <div class="empty-state">
-                            <div class="empty-state-icon">💬</div>
-                            <p class="empty-state-text">Belum ada feedback</p>
-                            <p class="empty-state-subtext">Feedback 360 derajat akan muncul di sini</p>
-                        </div>
+                        <a href="/360-feedback" class="nav-card-hover" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px; background: #fff; border-radius: 8px; text-decoration: none; color: inherit; transition: all 0.3s ease; height: 100%; min-height: 200px;" data-link>
+                            <div style="font-size: 3rem; margin-bottom: 15px;">${feedbackIcon}</div>
+                            <p class="empty-state-text" style="font-weight: 600; font-size: 1.1rem; color: ${feedbackColor}; margin: 0;">${feedbackStatusText}</p>
+                            <p class="empty-state-subtext" style="margin-top: 8px; color: #666;">${feedbackSubText}</p>
+                        </a>
                     </div>
                 </div>
             </div>

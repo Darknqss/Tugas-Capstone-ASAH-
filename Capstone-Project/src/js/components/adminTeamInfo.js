@@ -559,11 +559,15 @@ export async function AdminTeamInfoPage() {
             <label>Learning Path</label>
             <select name="learning_path" required>
               <option value="">Pilih Learning Path</option>
+              <option value="Machine Learning (ML)">Machine Learning (ML)</option>
+              <option value="Cloud Computing (CC)">Cloud Computing (CC)</option>
+              <option value="Mobile Development (MD)">Mobile Development (MD)</option>
+              <option value="Front-End Web & Back-End with AI (FEBE)">Front-End Web & Back-End with AI (FEBE)</option>
+              <!-- Fallback/Legacy Options -->
               <option value="Machine Learning">Machine Learning</option>
-              <option value="Front-End & Back-End">Front-End & Back-End</option>
-              <option value="React & Back-End">React & Back-End</option>
               <option value="Cloud Computing">Cloud Computing</option>
               <option value="Mobile Development">Mobile Development</option>
+              <option value="Front-End & Back-End">Front-End & Back-End</option>
             </select>
           </div>
 
@@ -715,6 +719,72 @@ function renderGroupDetail(group) {
 
   return `
     <div class="group-detail-view-modern">
+      <style>
+         .member-item-modern {
+           display: flex;
+           align-items: center; /* Center vertically */
+           flex-wrap: wrap;     /* Allow items to wrap on small screens */
+           gap: 16px;           /* Space between avatar, info, actions */
+           padding: 16px;
+           border: 1px solid #e2e8f0;
+           border-radius: 12px;
+           background: white;
+           margin-bottom: 12px;
+           transition: all 0.2s;
+         }
+         .member-item-modern:hover {
+           border-color: #cbd5e1;
+           box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+         }
+         
+         .member-avatar-modern {
+           width: 48px; 
+           height: 48px;
+           border-radius: 50%;
+           display: flex;
+           align-items: center;
+           justify-content: center;
+           font-weight: 700;
+           font-size: 18px;
+           flex-shrink: 0;
+         }
+
+         .member-info-modern {
+           flex: 1;            /* Grow to fill space */
+           min-width: 200px;   /* Minimum width before wrapping */
+           display: flex;
+           flex-direction: column;
+           gap: 4px;
+         }
+
+         .member-actions-modern {
+            display: flex; 
+            align-items: center; 
+            gap: 12px; 
+            flex-shrink: 0; /* Actions don't shrink */
+            margin-left: auto; /* Push to right */
+         }
+
+         /* Responsive Fixes */
+         @media (max-width: 576px) {
+            .member-item-modern {
+               flex-direction: column;
+               align-items: flex-start;
+            }
+            .member-actions-modern {
+               width: 100%;
+               margin-left: 0;
+               justify-content: flex-end;
+               margin-top: 12px;
+               padding-top: 12px;
+               border-top: 1px solid #f1f5f9;
+            }
+            .member-avatar-modern {
+               margin-bottom: 8px;
+            }
+         }
+      </style>
+
       
       <!-- Header Section with Team Name -->
       <div class="detail-header-modern">
@@ -765,16 +835,34 @@ function renderGroupDetail(group) {
           ${membersArray.length > 0
       ? `
               <div class="members-list-modern">
-                ${membersArray.map((member, index) => {
-        const memberId = member.user_id || member.users_source_id || member.id || member.userId || "";
-        const memberName = member.full_name || member.name || member.fullName || member.email || "Unknown";
-        const memberEmail = member.email || "-";
-        const memberRole = member.learning_path || member.learningPath || "-";
+                ${membersArray
+        .sort((a, b) => {
+          // Normalize roles for comparison
+          const roleA = (a.role || '').toLowerCase();
+          const roleB = (b.role || '').toLowerCase();
+
+          // Check for leader role variations
+          const isLeaderA = roleA === 'leader' || roleA === 'ketua';
+          const isLeaderB = roleB === 'leader' || roleB === 'ketua';
+
+          if (isLeaderA && !isLeaderB) return -1;
+          if (!isLeaderA && isLeaderB) return 1;
+
+          // Secondary sort by name
+          const nameA = a.full_name || a.name || a.fullName || '';
+          const nameB = b.full_name || b.name || b.fullName || '';
+          return nameA.localeCompare(nameB);
+        })
+        .map((member, index) => {
+          const memberId = member.user_id || member.users_source_id || member.id || member.userId || "";
+          const memberName = member.full_name || member.name || member.fullName || member.email || "Unknown";
+          const memberEmail = member.email || "-";
+          const memberRole = member.learning_path || member.learningPath || "-";
 
 
-        const memberStatus = member.status || "active"; // Default to active if not provided
+          const memberStatus = member.status || "active"; // Default to active if not provided
 
-        return `
+          return `
                   <div class="member-item-modern ${memberStatus === 'inactive' ? 'member-inactive' : ''}" style="${memberStatus === 'inactive' ? 'opacity: 0.6;' : ''}">
                     <div class="member-avatar-modern" style="background: ${['#e0f2fe', '#f0fdf4', '#faf5ff', '#fff7ed'][index % 4]}; color: ${['#0369a1', '#15803d', '#7e22ce', '#c2410c'][index % 4]};">
                       ${(memberName).charAt(0).toUpperCase()}
@@ -845,7 +933,7 @@ function renderGroupDetail(group) {
                     </div>
                   </div>
                 `;
-      }).join('')}
+        }).join('')}
               </div>
             `
       : `
