@@ -2,14 +2,19 @@ import { getUseCases, getProfile } from "../services/userService.js";
 import { getRules } from "../services/userService.js";
 
 export async function TeamRegistrationPage() {
+  console.log("[TEAM REG] ===== Starting Team Registration Page =====");
+
   let useCases = [];
   let rules = [];
   let userProfile = null;
   let hasError = false;
   let errorMessage = "";
 
+
+
   // 1. Fetch Profile first to get learning_path
   try {
+    console.log("[TEAM REG] Step 1: Fetching user profile...");
     const profileResponse = await getProfile();
     userProfile = profileResponse?.data || {};
     console.log("✅ User Profile loaded:", userProfile?.learning_path);
@@ -20,6 +25,7 @@ export async function TeamRegistrationPage() {
 
   // 2. Fetch Use Cases
   try {
+    console.log("[TEAM REG] Step 2: Fetching use cases...");
     const useCasesResponse = await getUseCases();
     useCases = useCasesResponse?.data || [];
     console.log("✅ Use Cases loaded:", useCases.length);
@@ -31,6 +37,7 @@ export async function TeamRegistrationPage() {
 
   // 3. Fetch Rules
   try {
+    console.log("[TEAM REG] Step 3: Fetching rules...");
     const rulesResponse = await getRules();
     console.log("✅ Rules response:", rulesResponse);
 
@@ -42,28 +49,70 @@ export async function TeamRegistrationPage() {
       rulesData = rulesResponse.data;
     }
 
-    // Filter only active rules with use_case_ref
-    rules = rulesData.filter(rule =>
-      rule.is_active === true &&
-      rule.use_case_ref !== null &&
-      rule.use_case_ref !== undefined &&
-      rule.use_case_ref !== ''
-    );
+    console.log("[DEBUG] Raw Rules Data:", rulesData);
+
+    // Filter only active rules (ALLOW empty use_case_ref for Global Rules)
+    rules = rulesData.filter(rule => {
+      const isActive = rule.is_active === true || rule.is_active === 1 || rule.is_active === "1";
+      return isActive; // Removed check for use_case_ref presence
+    });
+
+    console.log("[DEBUG] Filtered ACTIVE Rules (Including Global):", rules);
+
   } catch (error) {
     console.error("❌ Error fetching rules:", error);
     rules = [];
   }
 
   // Group rules by use_case_ref for easy lookup
-  const rulesByUseCase = {};
+  // 1. Group rules by Reference (Source ID) first
+  const rawRulesByRef = {};
+  const globalRules = [];
+
   rules.forEach(rule => {
     const ref = String(rule.use_case_ref || '').trim();
     if (ref) {
-      if (!rulesByUseCase[ref]) {
-        rulesByUseCase[ref] = [];
-      }
-      rulesByUseCase[ref].push(rule);
+      if (!rawRulesByRef[ref]) rawRulesByRef[ref] = [];
+      rawRulesByRef[ref].push(rule);
+    } else {
+      globalRules.push(rule);
     }
+  });
+
+  // 2. Build Final Map Keyed by Use Case DB ID
+  // This ensures app.js and badges can simply look up by ID and get ALL applicable rules
+  const rulesByUseCase = {};
+
+  if (useCases.length > 0) {
+    useCases.forEach(uc => {
+      const useCaseId = String(uc.id || '').trim();
+      if (!useCaseId) return;
+
+      const sourceId = uc.capstone_use_case_source_id || uc.source_id || '';
+
+      const specificById = rawRulesByRef[useCaseId] || []; // If ref was DB ID
+      const specificBySource = (sourceId && sourceId !== useCaseId) ? (rawRulesByRef[sourceId] || []) : []; // If ref was Source ID
+
+      // Merge and deduplicate
+      const combined = [...globalRules, ...specificById, ...specificBySource];
+      const unique = [...new Map(combined.map(r => [r.id, r])).values()]; // unique by Rule ID
+
+      rulesByUseCase[useCaseId] = unique;
+    });
+  }
+
+  console.log("[DEBUG] ===== RULES MAPPING COMPLETE =====");
+  console.log("[DEBUG] Total Use Cases:", useCases.length);
+  console.log("[DEBUG] Global Rules Count:", globalRules.length);
+  console.log("[DEBUG] rulesByUseCase Keys:", Object.keys(rulesByUseCase));
+  console.log("[DEBUG] rulesByUseCase Full Map:", rulesByUseCase);
+
+  // Log each use case and its rules
+  useCases.forEach(uc => {
+    const useCaseId = String(uc.id || '').trim();
+    const sourceId = uc.capstone_use_case_source_id || '';
+    const rules = rulesByUseCase[useCaseId] || [];
+    console.log(`[DEBUG] Use Case: ${uc.name} (ID: ${useCaseId}, Source: ${sourceId}) => ${rules.length} rules`);
   });
 
   // ========== FILTER LOGIC START ==========
@@ -74,7 +123,13 @@ export async function TeamRegistrationPage() {
 
     filteredUseCases = useCases.filter(uc => {
       const useCaseId = String(uc.id || '').trim();
-      const ucRules = rulesByUseCase[useCaseId] || [];
+      const sourceId = uc.capstone_use_case_source_id || uc.source_id || '';
+
+      // Combine Global, ID-based, and SourceID-based rules
+      const specificRulesById = rulesByUseCase[useCaseId] || [];
+      const specificRulesBySource = (sourceId && sourceId !== useCaseId) ? (rulesByUseCase[sourceId] || []) : [];
+
+      const allApplicableRules = [...globalRules, ...specificRulesById, ...specificRulesBySource];
 
       // If user has no learning path set yet, maybe show all? 
       // Or show only those with NO learning_path restrictions?
@@ -84,7 +139,7 @@ export async function TeamRegistrationPage() {
       if (!userPath) return true;
 
       // Find if this Use Case has any rule strictly related to 'learning_path'
-      const pathRules = ucRules.filter(r => r.user_attribute === 'learning_path');
+      const pathRules = allApplicableRules.filter(r => r.user_attribute === 'learning_path');
 
       // If NO rules about learning_path, then it's open to everyone (Generic)
       if (pathRules.length === 0) {
@@ -113,6 +168,8 @@ export async function TeamRegistrationPage() {
     useCasesListHtml = filteredUseCases.map((uc, index) => {
       const sourceId = uc.capstone_use_case_source_id || uc.id || '';
       const useCaseId = String(uc.id || '').trim();
+
+      // Get pre-calculated rules for this use case (already includes Global + Specific rules)
       const useCaseRules = rulesByUseCase[useCaseId] || [];
 
       return `
