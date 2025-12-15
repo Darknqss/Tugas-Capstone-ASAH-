@@ -11,7 +11,6 @@ export async function TeamRegistrationPage() {
   let errorMessage = "";
 
 
-
   // 1. Fetch Profile first to get learning_path
   try {
     console.log("[TEAM REG] Step 1: Fetching user profile...");
@@ -57,14 +56,13 @@ export async function TeamRegistrationPage() {
       return isActive; // Removed check for use_case_ref presence
     });
 
-    console.log("[DEBUG] Filtered ACTIVE Rules (Including Global):", rules);
+    console.log("[DEBUG] Active Rules Count:", rules.length);
 
   } catch (error) {
     console.error("❌ Error fetching rules:", error);
     rules = [];
   }
 
-  // Group rules by use_case_ref for easy lookup
   // 1. Group rules by Reference (Source ID) first
   const rawRulesByRef = {};
   const globalRules = [];
@@ -116,50 +114,9 @@ export async function TeamRegistrationPage() {
   });
 
   // ========== FILTER LOGIC START ==========
-  let filteredUseCases = [];
-
-  if (useCases.length > 0) {
-    const userPath = userProfile?.learning_path?.trim();
-
-    filteredUseCases = useCases.filter(uc => {
-      const useCaseId = String(uc.id || '').trim();
-      const sourceId = uc.capstone_use_case_source_id || uc.source_id || '';
-
-      // Combine Global, ID-based, and SourceID-based rules
-      const specificRulesById = rulesByUseCase[useCaseId] || [];
-      const specificRulesBySource = (sourceId && sourceId !== useCaseId) ? (rulesByUseCase[sourceId] || []) : [];
-
-      const allApplicableRules = [...globalRules, ...specificRulesById, ...specificRulesBySource];
-
-      // If user has no learning path set yet, maybe show all? 
-      // Or show only those with NO learning_path restrictions?
-      // Assuming if path not set, show all to encourage exploration? 
-      // User Prompt: "learning_path hanya bisa diset SEKALI... filterin sesuai dengan rules"
-      // If no path, we can't filter by path.
-      if (!userPath) return true;
-
-      // Find if this Use Case has any rule strictly related to 'learning_path'
-      const pathRules = allApplicableRules.filter(r => r.user_attribute === 'learning_path');
-
-      // If NO rules about learning_path, then it's open to everyone (Generic)
-      if (pathRules.length === 0) {
-        return true;
-      }
-
-      // If HAS rules about learning_path, User MUST match AT LEAST ONE of the allowed paths
-      const isMatch = pathRules.some(rule => {
-        // Helper to normalize: lowercase, remove parens content, trim
-        const norm = (str) => str?.toLowerCase().replace(/\s*\(.*?\)\s*/g, '').trim();
-
-        return norm(rule.attribute_value) === norm(userPath) ||
-          rule.attribute_value === userPath; // fallback to exact
-      });
-
-      return isMatch;
-    });
-
-    console.log(`Filtered Use Cases: ${filteredUseCases.length} (User Path: ${userPath})`);
-  }
+  // ⚠️ FILTERING TEMPORARILY DISABLED - SHOWING ALL USE CASES
+  let filteredUseCases = useCases;
+  console.log(`[DEBUG] Showing ALL ${filteredUseCases.length} Use Cases (filtering disabled)`);
   // ========== FILTER LOGIC END ==========
 
   // Build use case list (radio buttons)
@@ -168,8 +125,6 @@ export async function TeamRegistrationPage() {
     useCasesListHtml = filteredUseCases.map((uc, index) => {
       const sourceId = uc.capstone_use_case_source_id || uc.id || '';
       const useCaseId = String(uc.id || '').trim();
-
-      // Get pre-calculated rules for this use case (already includes Global + Specific rules)
       const useCaseRules = rulesByUseCase[useCaseId] || [];
 
       return `
@@ -220,21 +175,15 @@ export async function TeamRegistrationPage() {
         <div class="rules-footer" hidden data-rules-footer>
           <p class="rules-hint">
             <span class="rules-hint-icon">💡</span>
-            Pastikan komposisi tim memenuhi semua aturan di atas
+            Pastikan anggota tim memenuhi aturan di atas
           </p>
         </div>
       </div>
     `;
   } else {
     rulesInfoHtml = `
-      <div class="rules-info-card rules-info-card--empty">
-        <div class="rules-header">
-          <h3 class="rules-info-title">
-            <span class="rules-icon">📋</span>
-            Aturan Komposisi Tim
-          </h3>
-        </div>
-        <div class="rules-content">
+      <div class="rules-info-card">
+        <div class="rules-empty">
           <div class="rules-empty-state">
             <span class="rules-empty-icon">✨</span>
             <p class="rules-empty-text">Belum ada aturan aktif</p>
@@ -266,6 +215,26 @@ export async function TeamRegistrationPage() {
                 <h2 class="card-title">Form Registrasi Tim</h2>
                 <p class="form-description">Isi detail tim Anda untuk melanjutkan proses capstone.</p>
                 
+                ${!userProfile?.learning_path || !userProfile?.university ? `
+                  <div class="alert alert-warning" style="margin-bottom: 20px; padding: 16px; background: linear-gradient(135deg, #fff3cd 0%, #fff8e1 100%); border: 2px solid #ffc107; border-radius: 10px; display: flex; align-items: start; gap: 12px;">
+                    <span style="font-size: 24px;">⚠️</span>
+                    <div style="flex: 1;">
+                      <strong style="display: block; margin-bottom: 8px; color: #856404;">Profil Belum Lengkap</strong>
+                      <p style="margin: 0; color: #856404; font-size: 14px; line-height: 1.6;">
+                        ${!userProfile?.learning_path ? 'Learning Path belum diset. ' : ''}
+                        ${!userProfile?.university ? 'Universitas belum diisi. ' : ''}
+                        Silakan lengkapi profil Anda terlebih dahulu dengan klik foto profil di pojok kanan atas.
+                      </p>
+                      <p style="margin: 8px 0 0 0; font-size: 13px; color: #856404;">
+                        <strong>Format Learning Path yang benar:</strong><br>
+                        • Machine Learning (ML)<br>
+                        • Front-End Web & Back-End with AI (FEBE)<br>
+                        • React & Back-End with AI (REBE)
+                      </p>
+                    </div>
+                  </div>
+                ` : ''}
+                
                 <form class="team-registration-form" data-registration-form>
                   <div class="form-feedback" data-form-feedback hidden></div>
                   
@@ -291,10 +260,8 @@ export async function TeamRegistrationPage() {
                       </div>
                     ` : ''}
 
-                    <div class="use-case-list-wrapper">
-                      <div class="use-case-list" data-use-case-list>
-                        ${useCasesListHtml}
-                      </div>
+                    <div class="use-case-list">
+                      ${useCasesListHtml}
                     </div>
                     <p class="form-hint">Pilih use case yang akan dikerjakan tim Anda.</p>
                   </div>
@@ -330,12 +297,11 @@ export async function TeamRegistrationPage() {
 
             <div class="registration-sidebar">
               ${rulesInfoHtml}
-              
+
               <div class="info-card">
-                <h3 class="info-title">
-                  <span class="info-icon">ℹ️</span>
-                  Informasi Penting
-                </h3>
+                <div class="info-card-header">
+                  <i>ℹ️</i> Informasi Penting
+                </div>
                 <ul class="info-list">
                   <li>Pastikan semua anggota tim sudah terdaftar di sistem</li>
                   <li>Gunakan ID anggota yang valid (format: FUI0001, dll)</li>
@@ -348,10 +314,9 @@ export async function TeamRegistrationPage() {
         `}
       </div>
     </div>
-    
+
     <script type="application/json" data-rules-data>
       ${JSON.stringify({ rulesByUseCase, rules })}
     </script>
   `;
 }
-
