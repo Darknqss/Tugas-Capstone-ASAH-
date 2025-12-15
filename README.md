@@ -112,14 +112,14 @@ Aplikasi akan berjalan di:
 Untuk menjalankan backend, diperlukan konfigurasi environment variables berikut. **Nilai asli tidak ditampilkan** demi keamanan.
 
 ```env
-SUPABASE_URL=
-SUPABASE_SERVICE_ROLE_KEY=
+SUPABASE_URL= your_supabase_project_ur
+SUPABASE_SERVICE_ROLE_KEY= your_service_role_key
 PORT=3000
-JWT_SECRET=
+JWT_SECRET= your_jwt_secret
 BCRYPT_SALT_ROUNDS=10
 EMAIL_SERVICE=gmail
-EMAIL_USER=
-EMAIL_PASS=
+EMAIL_USER= your_email@gmail.com
+EMAIL_PASS= your_app_password
 EMAIL_FROM="Admin Capstone <email@example.com>"
 ```
 
