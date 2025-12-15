@@ -1,0 +1,39 @@
+/* Submit Button Fix - Force Visibility */
+.btn-submit,
+.btn.btn-primary.btn-large {
+    width: 100% !important;
+    padding: 14px 24px !important;
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    background: linear-gradient(135deg, #004a7a 0%, #0066a8 100%) !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 10px !important;
+    cursor: pointer !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 4px 12px rgba(0, 74, 122, 0.2) !important;
+    text-align: center !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+.btn-submit:hover,
+.btn.btn-primary.btn-large:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 16px rgba(0, 74, 122, 0.3) !important;
+    background: linear-gradient(135deg, #005a94 0%, #007bbd 100%) !important;
+}
+
+.btn-submit:active,
+.btn.btn-primary.btn-large:active {
+    transform: translateY(0) !important;
+    box-shadow: 0 2px 8px rgba(0, 74, 122, 0.2) !important;
+}
+
+.btn-submit:disabled,
+.btn.btn-primary.btn-large:disabled {
+    opacity: 0.6 !important;
+    cursor: not-allowed !important;
+    transform: none !important;
+}
