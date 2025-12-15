@@ -45,16 +45,21 @@ cd Tugas-Capstone-ASAH-
 npm install
 ```
 
-### 3️⃣ Konfigurasi Environment
+### 3️⃣ Konfigurasi Environment (Frontend)
 
-Buat file **`.env`** di root project dan isi dengan konfigurasi berikut:
+Buat file **`.env`** di root project frontend dan isi dengan konfigurasi berikut (gunakan placeholder untuk keamanan):
 
+````env
+VITE_API_BASE_URL=http://localhost:5000
+EMAIL_SERVICE=gmail
+EMAIL_USER=your_email@gmail.com
+EMAIL_PASS=your_app_password
 ```env
 VITE_API_BASE_URL=http://localhost:5000
 EMAIL_SERVICE=gmail
 EMAIL_USER=capstonetrack09@gmail.com
 EMAIL_PASS=bzvdehotggypdtia
-```
+````
 
 > ⚠️ **Catatan:** Pastikan email dan app password Gmail sudah dikonfigurasi dengan benar.
 
@@ -91,6 +96,36 @@ Aplikasi akan berjalan di:
 3. Admin melihat dan mengatur **status tim**
 4. Sistem secara otomatis mengirim **email notifikasi** sesuai status tim
 5. Admin dapat melakukan **randomize team** jika diperlukan
+
+---
+
+## 🧪 Backend Environment Variables
+
+Tambahkan konfigurasi berikut pada file **`.env`** di sisi backend (contoh aman untuk repository publik):
+
+````env
+SUPABASE_URL=your_supabase_project_url
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+PORT=3000
+JWT_SECRET=your_jwt_secret
+BCRYPT_SALT_ROUNDS=10
+EMAIL_SERVICE=gmail
+EMAIL_USER=your_email@gmail.com
+EMAIL_PASS=your_app_password
+EMAIL_FROM="Admin Capstone <your_email@gmail.com>"
+```env
+SUPABASE_URL=https://buwyykmsxqstdxrdkuby.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1d3l5a21zeHFzdGR4cmRrdWJ5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NDQ4NTM0OCwiZXhwIjoyMDgwMDYxMzQ4fQ.C39_ZeIEcA01pxvS0ZmjDDU3pxDJIVc1aVvgqVvyVQg
+PORT=3000
+JWT_SECRET=bf9a6b3-4b8b-4fab-966b-0ea7e6fe0471
+BCRYPT_SALT_ROUNDS=10
+EMAIL_SERVICE=gmail
+EMAIL_USER=capstonetrack09@gmail.com
+EMAIL_PASS=bzvdehotggypdtia
+EMAIL_FROM="Admin Capstone <capstonetrack09@gmail.com>"
+````
+
+> ⚠️ **Keamanan:** Pastikan file `.env` **tidak di-commit** ke repository publik.
 
 ---
 
